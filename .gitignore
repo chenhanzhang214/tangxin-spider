@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build output and deployment caches
+.output/
+.vercel/
+dist/
+release/
+release-*/
+.electron-builder-cache*/
+.installer-smoke-*/
+.tmp-*/
+.tanstack/
+
+# Local runtime data
+downloads/
+screenshots/
+artifacts/
+*.log
+start-error.log
+
+# Environment files and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Workspace-only instructions and planning notes
+.grok/
+AGENTS.md
+tasks/
+.node_modules.lock
+
+# Accidental empty placeholder file created by the sandbox
+{}
