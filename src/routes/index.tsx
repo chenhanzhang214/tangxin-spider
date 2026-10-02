@@ -151,8 +151,8 @@ function Home() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-bg">
-      <div className="mx-auto flex min-h-screen max-w-[1680px] animate-page-in">
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-surface/30 px-4 py-5 lg:flex">
+      <div className="mx-auto flex min-h-screen max-w-[1680px] animate-page-in lg:h-dvh lg:min-h-0 lg:overflow-hidden">
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-surface/30 px-4 py-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
           <BrandLockup />
           <div className="mt-8 flex items-center justify-between px-3">
             <p className="font-mono text-[10px] tracking-[0.18em] text-faint uppercase">工作区</p>
@@ -174,8 +174,8 @@ function Home() {
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1">
-          <header className="border-b border-line bg-bg/80">
+        <div className="min-w-0 flex-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
+          <header className="border-b border-line bg-bg/80 lg:shrink-0">
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:py-5">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="lg:hidden">
@@ -216,7 +216,7 @@ function Home() {
             </div>
           </header>
 
-          <main className="mx-auto max-w-6xl overflow-x-hidden px-4 py-7 sm:px-6 sm:py-9">
+          <main className="mx-auto max-w-6xl overflow-x-hidden px-4 py-7 sm:px-6 sm:py-9 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
             {data.error && (
               <p className="rounded-md border border-line bg-surface px-4 py-3 text-sm text-clay">
                 {data.error}
