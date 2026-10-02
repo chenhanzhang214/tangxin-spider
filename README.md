@@ -117,7 +117,7 @@ npm run desktop:package
 生成的便携版程序位于：
 
 ```text
-release\Tangxin-0.3.4-x64-portable.exe
+release\Tangxin-0.4.0-x64-portable.exe
 ```
 
 把这个 `.exe` 复制到 Windows 电脑后直接双击即可打开图形化窗口。它会在程序内部启动本地服务，爬取、MP4 并发下载、按演员归档等功能保持不变；不需要另外安装 Node.js，也不需要先打开 Chrome。
@@ -131,7 +131,7 @@ npm run desktop:installer
 生成的安装包位于：
 
 ```text
-release\Tangxin-0.3.4-Setup-x64.exe
+release\Tangxin-0.4.0-Setup-x64.exe
 ```
 
 安装包支持选择安装目录，并默认创建开始菜单和桌面快捷方式。安装后的程序包含本地服务和 `ffmpeg`，目标电脑不需要另装 Node.js；卸载时默认不会删除用户数据目录。安装包和便携版使用同一套完整功能，区别只是安装方式不同。

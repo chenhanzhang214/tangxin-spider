@@ -169,7 +169,7 @@ function Home() {
             </div>
             <div className="mt-3 flex items-center justify-between font-mono text-[10px] text-faint">
               <span>糖心图谱</span>
-              <span>v0.3.4</span>
+              <span>v0.4.0</span>
             </div>
           </div>
         </aside>
@@ -745,7 +745,7 @@ function AboutPanel() {
           </p>
         </div>
         <div className="font-mono text-xs text-muted">
-          <span className="text-faint">VERSION </span>0.3.4
+          <span className="text-faint">VERSION </span>0.4.0
         </div>
       </section>
 

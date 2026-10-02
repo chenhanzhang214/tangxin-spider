@@ -1,6 +1,6 @@
 {
   "name": "app-builder-workspace",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "糖心图谱：按演员整理 HLS 作品并保存本地 MP4",
   "main": "desktop/main.mjs",
   "private": true,
