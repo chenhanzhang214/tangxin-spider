@@ -138,6 +138,8 @@ release\Tangxin-0.3.4-Setup-x64.exe
 
 已经构建好的 Windows x64 安装版和便携版（包括历史版本）统一放在 [GitHub Releases](https://github.com/chenhanzhang214/tangxin-spider/releases)。下载和使用这些程序时，同样需要搭配中国大陆以外的网络环境，并遵守适用的法律法规、服务条款、版权和隐私要求。
 
+各版本的功能变化、修复内容及升级说明见 [更新日志](CHANGELOG.md)。
+
 “猫抓解析”仍是例外：只有点击该按钮时，程序才会调用电脑上已安装的 Chrome 猫抓扩展；MP4 下载不依赖 Chrome。
 
 开发机也可以用下面的命令直接验证桌面窗口：
