@@ -22,6 +22,18 @@
   --radius-xl: 24px;
 }
 
+:root[data-theme="light"] {
+  --color-bg: #f7f3ee;
+  --color-surface: #fffdf9;
+  --color-elevated: #eee8e0;
+  --color-fg: #2b2521;
+  --color-muted: #6f6259;
+  --color-faint: #998b80;
+  --color-accent: #9b6548;
+  --color-accent-fg: #fffaf5;
+  --color-clay: #b4524d;
+}
+
 @layer base {
   button:not(:disabled),
   [role="button"]:not(:disabled) {
@@ -37,8 +49,28 @@
   }
 
   body {
-    background-image:
-      linear-gradient(180deg, #100e0c 0%, var(--color-bg) 28%, var(--color-bg) 100%);
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-surface) 70%, var(--color-bg)) 0%,
+      var(--color-bg) 30%,
+      var(--color-bg) 100%
+    );
+    transition: background-color 220ms ease, color 220ms ease;
+  }
+
+  button,
+  a,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .animate-page-in {
+    animation: page-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes page-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   ::selection {

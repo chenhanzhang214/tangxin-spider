@@ -18,6 +18,7 @@ import {
   ListPlus,
   Loader2,
   Monitor,
+  Moon,
   PackageOpen,
   Play,
   RefreshCw,
@@ -31,6 +32,7 @@ import {
   UserRound,
   Workflow,
   XCircle,
+  Sun,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -74,6 +76,7 @@ import {
 import { sanitizeFilename, sanitizeVideoTitle, videoMp4Url } from "@/lib/tx/mp4-utils";
 import { readMp4Response, type Mp4SaveResult } from "@/lib/tx/mp4-progress";
 import { PAGE_SIZE, type HomeData, type NamedCount, type VideoCard } from "@/lib/tx/types";
+import { useTheme } from "@/lib/theme-context";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -144,10 +147,11 @@ function Home() {
   const actorsView = actors.length ? actors : data.actors;
   const tagsView = tags.length ? tags : data.tags;
   const currentTab = TABS.find((item) => item.id === tab) ?? TABS[0];
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-bg">
-      <div className="mx-auto flex min-h-screen max-w-[1680px]">
+      <div className="mx-auto flex min-h-screen max-w-[1680px] animate-page-in">
         <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-surface/30 px-4 py-5 lg:flex">
           <BrandLockup />
           <div className="mt-8 flex items-center justify-between px-3">
@@ -186,7 +190,7 @@ function Home() {
                   </h1>
                 </div>
               </div>
-              <div className="flex items-center gap-3 sm:gap-5">
+              <div className="flex items-center gap-2 sm:gap-5">
                 <div className="hidden gap-5 font-mono text-xs text-muted sm:flex">
                   <Stat label="演员" value={actorsView.length || "—"} />
                   <Stat label="标签" value={tagsView.length || "—"} />
@@ -196,6 +200,15 @@ function Home() {
                   <span className="size-1.5 rounded-full bg-accent" />
                   本机模式
                 </span>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="inline-flex size-9 items-center justify-center rounded-md border border-line bg-surface text-muted transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:bg-elevated hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+                  aria-label={theme === "dark" ? "切换到浅色模式" : "切换到深色模式"}
+                  title={theme === "dark" ? "浅色模式" : "深色模式"}
+                >
+                  {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                </button>
               </div>
             </div>
             <div className="mx-auto max-w-6xl px-4 pb-3 sm:px-6 lg:hidden">
