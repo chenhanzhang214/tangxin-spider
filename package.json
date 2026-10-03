@@ -1,6 +1,6 @@
 {
   "name": "app-builder-workspace",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "description": "糖心图谱：按演员整理 HLS 作品并保存本地 MP4",
   "main": "desktop/main.mjs",
   "private": true,
@@ -20,6 +20,8 @@
     "desktop:package": "node scripts/desktop-package.mjs",
     "desktop:installer:raw": "electron-builder --win nsis",
     "desktop:installer": "node scripts/desktop-package.mjs --installer",
+    "ios:build": "node scripts/ios-build.mjs --simulator",
+    "ios:package": "node scripts/ios-build.mjs --package",
     "db:migrate": "node scripts/migrate.mjs",
     "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
     "preview": "node scripts/with-app-env.mjs vite preview",
@@ -27,7 +29,7 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test scripts/*.test.mjs desktop/*.test.mjs && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/tx/mp4-utils.test.ts src/lib/tx/mp4.server.test.ts src/lib/tx/mp4-progress.test.ts src/lib/tx/hls-prefetch.test.ts src/lib/tx/hls-prefetch.server.test.ts src/lib/tx/cat-catch.test.ts src/lib/tx/cat-catch.server.test.ts src/lib/tx/download-progress.test.ts src/lib/tx/download-settings.test.ts src/lib/tx/parse.test.ts src/lib/tx/search.server.test.ts src/lib/tx/archive-utils.test.ts",
+    "test": "node --test scripts/*.test.mjs desktop/*.test.mjs && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/tx/mp4-utils.test.ts src/lib/tx/mp4.server.test.ts src/lib/tx/preview.server.test.ts src/lib/tx/mp4-progress.test.ts src/lib/tx/hls-prefetch.test.ts src/lib/tx/hls-prefetch.server.test.ts src/lib/tx/cat-catch.test.ts src/lib/tx/cat-catch.server.test.ts src/lib/tx/download-progress.test.ts src/lib/tx/download-settings.test.ts src/lib/tx/parse.test.ts src/lib/tx/search.server.test.ts src/lib/tx/archive-utils.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -67,6 +69,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.0.0",
+    "hls.js": "^1.7.3",
     "jose": "6.2.9",
     "kysely": "^0.28.5",
     "lucide-react": "^0.510.0",
@@ -92,6 +95,8 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
@@ -104,9 +109,7 @@
     "prettier": "^3.4.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.2.0",
-    "electron": "44.3.0",
-    "electron-builder": "26.15.3"
+    "vite": "^8.2.0"
   },
   "build": {
     "appId": "com.tangxin.map",

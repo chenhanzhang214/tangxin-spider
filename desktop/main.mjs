@@ -1,6 +1,8 @@
-import { app, BrowserWindow, dialog, session, shell, utilityProcess } from "electron";
-import { appendFileSync, copyFileSync, cpSync, existsSync, mkdirSync } from "node:fs";
+import { app, BrowserWindow, dialog, ipcMain, session, shell, utilityProcess } from "electron";
+import { appendFileSync, copyFileSync, cpSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { registerDirectoryPicker } from "./directory-dialog.mjs";
+import { desktopBuildId } from "./runtime-cache.mjs";
 import {
   APP_TITLE,
   buildServerEnvironment,
@@ -119,8 +121,13 @@ function serverPaths() {
 
   if (!app.isPackaged) return sourcePaths;
 
-  const runtimePaths = resolveDesktopRuntimePaths(app.getPath("userData"), app.getVersion());
+  if (!existsSync(sourcePaths.serverEntry) || !existsSync(join(sourcePaths.serverCwd, "public", "favicon.svg"))) {
+    throw new Error("桌面资源不完整，请重新安装程序。");
+  }
+  const buildId = desktopBuildId(sourcePaths.serverCwd);
+  const runtimePaths = resolveDesktopRuntimePaths(app.getPath("userData"), app.getVersion(), buildId);
   const runtimeReady =
+    existsSync(join(runtimePaths.root, ".ready")) &&
     existsSync(runtimePaths.serverEntry) &&
     existsSync(join(runtimePaths.serverCwd, "public", "favicon.svg"));
   if (!runtimeReady) {
@@ -138,6 +145,7 @@ function serverPaths() {
       mkdirSync(dirname(runtimePaths.ffmpegPath), { recursive: true });
       copyFileSync(sourcePaths.ffmpegPath, runtimePaths.ffmpegPath);
     }
+    writeFileSync(join(runtimePaths.root, ".ready"), buildId, "utf8");
   }
 
   return {
@@ -204,6 +212,7 @@ function createWindow() {
     backgroundColor: "#0f0d0c",
     autoHideMenuBar: true,
     webPreferences: {
+      preload: join(import.meta.dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -238,6 +247,13 @@ async function stopLocalServer() {
 
 async function start() {
   app.setAppUserModelId("com.tangxin.map");
+  registerDirectoryPicker({
+    ipcMain,
+    dialog,
+    getWindow: () => mainWindow,
+    getServerUrl: () => serverUrl,
+    getDefaultPath: () => app.getPath("downloads"),
+  });
   configureDownloads();
   await ensureLocalServer();
   createWindow();

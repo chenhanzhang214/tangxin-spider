@@ -26,6 +26,29 @@ describe("Pagefind search result mapping", () => {
     });
   });
 
+  it("accepts language-prefixed video results from the current search index", () => {
+    for (const path of ["/zh-tw/v/36560/", "/zh-cn/v/36560", "/en/v/36560/"]) {
+      const result = pagefindDataToVideoCard({
+        url: `https://tangxinvlog.app${path}`,
+        meta: { title: "预览测试作品", nickname: "@演员乙" },
+      });
+      assert.equal(result?.id, "36560");
+      assert.equal(result?.pageUrl, "https://tangxinvlog.app/v/36560/");
+      assert.equal(result?.hls, "https://t.5gcdn.xyz/videos/36560/index.m3u8");
+    }
+  });
+
+  it("does not accept unrelated or external language-prefixed pages", () => {
+    for (const url of [
+      "https://example.com/zh-tw/v/36560/",
+      "https://tangxinvlog.app/zh-tw/a/36560/",
+      "https://tangxinvlog.app/arbitrary/v/36560/",
+      "https://tangxinvlog.app/zh-tw/v/not-a-number/",
+    ]) {
+      assert.equal(pagefindDataToVideoCard({ url }), null);
+    }
+  });
+
   it("rejects results that are not source video pages", () => {
     assert.equal(
       pagefindDataToVideoCard({

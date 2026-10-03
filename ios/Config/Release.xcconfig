@@ -1,0 +1,2 @@
+// Release packaging must provide IOS_WEB_APP_URL from the environment.
+IOS_WEB_APP_URL =

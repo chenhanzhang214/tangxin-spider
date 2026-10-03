@@ -39,11 +39,13 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type SetStateAction,
 } from "react";
 import { Button } from "@/components/ui/button";
+import { VideoPreviewDialog } from "@/components/video-preview-dialog";
 import { cn } from "@/lib/utils";
 import {
   getActorPage,
@@ -148,20 +150,29 @@ function Home() {
   const tagsView = tags.length ? tags : data.tags;
   const currentTab = TABS.find((item) => item.id === tab) ?? TABS[0];
   const { theme, toggleTheme } = useTheme();
+  const contentRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [tab]);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-bg">
-      <div className="mx-auto flex min-h-screen max-w-[1680px] animate-page-in lg:h-dvh lg:min-h-0 lg:overflow-hidden">
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-line bg-surface/30 px-4 py-5 lg:flex lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
-          <BrandLockup />
-          <div className="mt-8 flex items-center justify-between px-3">
+    <div className="h-dvh overflow-hidden bg-bg">
+      <div className="mx-auto flex h-full min-h-0 max-w-[1680px] overflow-hidden animate-page-in">
+        <aside aria-label="侧边栏" className="hidden h-full min-h-0 w-64 shrink-0 flex-col overflow-hidden border-r border-line bg-surface/30 px-4 py-5 md:flex">
+          <div className="shrink-0">
+            <BrandLockup />
+          </div>
+          <div className="mt-8 flex shrink-0 items-center justify-between px-3">
             <p className="font-mono text-[10px] tracking-[0.18em] text-faint uppercase">工作区</p>
             <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-accent">
               本机
             </span>
           </div>
-          <AppNav tab={tab} setTab={setTab} />
-          <div className="mt-auto rounded-lg border border-line bg-bg/40 p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-scroll-region="sidebar">
+            <AppNav tab={tab} setTab={setTab} />
+          </div>
+          <div className="mt-4 shrink-0 rounded-lg border border-line bg-bg/40 p-3">
             <div className="flex items-center gap-2 text-xs text-muted">
               <CircleUserRound className="size-4 text-accent" />
               <span>运行模式</span>
@@ -169,19 +180,19 @@ function Home() {
             </div>
             <div className="mt-3 flex items-center justify-between font-mono text-[10px] text-faint">
               <span>糖心图谱</span>
-              <span>v0.4.0</span>
+              <span>v0.4.2</span>
             </div>
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
-          <header className="border-b border-line bg-bg/80 lg:shrink-0">
-            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:py-5">
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="shrink-0 border-b border-line bg-bg/80">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 md:py-5">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="lg:hidden">
+                <div className="md:hidden">
                   <BrandLockup compact />
                 </div>
-                <div className="hidden min-w-0 lg:block">
+                <div className="hidden min-w-0 md:block">
                   <p className="font-mono text-[10px] tracking-[0.18em] text-faint uppercase">
                     tangxinvlog.app / workspace
                   </p>
@@ -211,26 +222,28 @@ function Home() {
                 </button>
               </div>
             </div>
-            <div className="mx-auto max-w-6xl px-4 pb-3 sm:px-6 lg:hidden">
+            <div className="mx-auto max-w-6xl overflow-x-auto px-4 pb-3 sm:px-6 md:hidden">
               <AppNav tab={tab} setTab={setTab} compact />
             </div>
           </header>
 
-          <main className="mx-auto max-w-6xl overflow-x-hidden px-4 py-7 sm:px-6 sm:py-9 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
-            {data.error && (
-              <p className="rounded-md border border-line bg-surface px-4 py-3 text-sm text-clay">
-                {data.error}
-              </p>
-            )}
-            {tab === "map" && (
-              <StructurePanel home={homeView} actors={actorsView} tags={tagsView} />
-            )}
-            {tab === "crawl" && <CrawlPanel />}
-            {tab === "discover" && <DiscoveryPanel />}
-            {tab === "result" && <ResultPanel />}
-            {tab === "script" && <ScriptPanel />}
-            {tab === "settings" && <SettingsPanel />}
-            {tab === "about" && <AboutPanel />}
+          <main ref={contentRef} tabIndex={0} aria-label={`${currentTab.label}内容`} data-scroll-region="content" className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
+            <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 sm:py-9">
+              {data.error && (
+                <p className="rounded-md border border-line bg-surface px-4 py-3 text-sm text-clay">
+                  {data.error}
+                </p>
+              )}
+              {tab === "map" && (
+                <StructurePanel home={homeView} actors={actorsView} tags={tagsView} />
+              )}
+              {tab === "crawl" && <CrawlPanel />}
+              {tab === "discover" && <DiscoveryPanel />}
+              {tab === "result" && <ResultPanel />}
+              {tab === "script" && <ScriptPanel />}
+              {tab === "settings" && <SettingsPanel />}
+              {tab === "about" && <AboutPanel />}
+            </div>
           </main>
         </div>
       </div>
@@ -325,6 +338,7 @@ function StructurePanel({
   const setTab = useCatalog((s) => s.setTab);
   const [selectedHomeIds, setSelectedHomeIds] = useState<string[]>([]);
   const [homeMessage, setHomeMessage] = useState<string | null>(null);
+  const [previewVideo, setPreviewVideo] = useState<VideoCard | null>(null);
   const homeVideos = useMemo(() => {
     const unique = new Map<string, VideoCard>();
     for (const section of home?.sections ?? []) {
@@ -418,7 +432,7 @@ function StructurePanel({
           <div>
             <SectionTitle kicker="源站快照" title="首页推荐" />
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-              勾选首页推荐后加入爬取归档；内容会按演员合并，之后可在“归档”中下载 MP4。
+              先点击预览确认内容，再勾选首页推荐加入爬取归档；内容会按演员合并，之后可在“归档”中下载 MP4。
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -482,25 +496,38 @@ function StructurePanel({
                   const checked = selectedHomeIds.includes(v.id);
                   return (
                     <li key={v.id} className="border-b border-line last:border-0">
-                      <label
+                      <div
                         className={cn(
-                          "flex cursor-pointer items-start gap-3 px-3 py-2.5 transition-colors",
+                          "flex items-start gap-3 px-3 py-2.5 transition-colors",
                           checked && "bg-elevated",
                         )}
                       >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleHomeVideo(v.id)}
-                          className="mt-0.5 size-4 accent-[var(--color-accent)]"
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm text-fg">{v.title}</span>
-                          <span className="mt-1 block truncate font-mono text-xs text-faint">
-                            {v.duration || "时长未知"} · @{v.actor}
+                        <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleHomeVideo(v.id)}
+                            className="mt-0.5 size-4 accent-[var(--color-accent)]"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm text-fg">{v.title}</span>
+                            <span className="mt-1 block truncate font-mono text-xs text-faint">
+                              {v.duration || "时长未知"} · @{v.actor}
+                            </span>
                           </span>
-                        </span>
-                      </label>
+                        </label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setPreviewVideo(v)}
+                          aria-label={`预览 ${v.title}`}
+                          className="h-11 shrink-0"
+                        >
+                          <Play className="size-3.5" />
+                          预览
+                        </Button>
+                      </div>
                     </li>
                   );
                 })}
@@ -527,6 +554,8 @@ function StructurePanel({
           </div>
         )}
       </section>
+
+      <VideoPreviewDialog video={previewVideo} onClose={() => setPreviewVideo(null)} />
 
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -580,6 +609,12 @@ function SettingsPanel() {
   const activeDownloads = downloadTasks.filter(isDownloadTaskActive).length;
   const [draft, setDraft] = useState(directory);
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean } | null>(null);
+  const [canChooseDirectory, setCanChooseDirectory] = useState(false);
+  const [choosingDirectory, setChoosingDirectory] = useState(false);
+
+  useEffect(() => {
+    setCanChooseDirectory(Boolean(window.tangxinDesktop?.selectDownloadDirectory));
+  }, []);
 
   useEffect(() => {
     setDraft(directory);
@@ -591,7 +626,7 @@ function SettingsPanel() {
       setFeedback({ message: "请输入绝对路径，例如 E:\\Videos\\spider。", error: true });
       return;
     }
-    if (activeDownloads > 0) {
+    if (useCatalog.getState().downloadTasks.some(isDownloadTaskActive)) {
       setFeedback({ message: "下载任务进行中，请完成后再修改目录。", error: true });
       return;
     }
@@ -607,6 +642,21 @@ function SettingsPanel() {
   function restoreDefault() {
     setDraft(DEFAULT_DOWNLOAD_DIRECTORY);
     setFeedback({ message: "默认目录已填入，点击“保存设置”后生效。" });
+  }
+
+  async function chooseDirectory() {
+    const desktop = window.tangxinDesktop;
+    if (!desktop || choosingDirectory || activeDownloads > 0) return;
+    setChoosingDirectory(true);
+    setFeedback(null);
+    try {
+      const selected = await desktop.selectDownloadDirectory(draft);
+      if (selected !== null) saveDirectory(selected);
+    } catch {
+      setFeedback({ message: "无法打开文件夹选择窗口，请重试。", error: true });
+    } finally {
+      setChoosingDirectory(false);
+    }
   }
 
   return (
@@ -648,7 +698,7 @@ function SettingsPanel() {
         <label className="mt-7 block" htmlFor="download-directory">
           <span className="text-sm text-fg">保存位置</span>
           <span className="mt-1 block text-xs leading-relaxed text-muted">
-            请填写 Windows 绝对路径，也支持网络共享路径；例如 D:\\Media\\spider。
+            点击“选择文件夹”即可设置保存位置，也可以填写绝对路径或网络共享路径。
           </span>
         </label>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
@@ -663,12 +713,22 @@ function SettingsPanel() {
               }}
               spellCheck={false}
               autoComplete="off"
+              disabled={activeDownloads > 0 || choosingDirectory}
               className="h-11 w-full rounded-md border border-line bg-bg pr-3 pl-10 font-mono text-sm text-fg outline-none placeholder:text-faint focus:border-line-strong focus:ring-2 focus:ring-accent/30"
               placeholder={DEFAULT_DOWNLOAD_DIRECTORY}
               aria-describedby="download-directory-help"
             />
           </div>
-          <Button type="button" onClick={() => saveDirectory()} disabled={activeDownloads > 0}>
+          <Button
+            type="button"
+            onClick={() => void chooseDirectory()}
+            disabled={!canChooseDirectory || activeDownloads > 0 || choosingDirectory}
+            title={canChooseDirectory ? "选择 MP4 保存文件夹" : "文件夹选择窗口在桌面版中可用"}
+          >
+            {choosingDirectory ? <Loader2 className="size-4 animate-spin" /> : <FolderOpen className="size-4" />}
+            {choosingDirectory ? "选择中…" : "选择文件夹"}
+          </Button>
+          <Button type="button" onClick={() => saveDirectory()} disabled={activeDownloads > 0 || choosingDirectory}>
             <Save className="size-4" />
             保存设置
           </Button>
@@ -676,7 +736,7 @@ function SettingsPanel() {
             type="button"
             variant="ghost"
             onClick={restoreDefault}
-            disabled={activeDownloads > 0}
+            disabled={activeDownloads > 0 || choosingDirectory}
           >
             <RotateCcw className="size-4" />
             恢复默认
@@ -745,7 +805,7 @@ function AboutPanel() {
           </p>
         </div>
         <div className="font-mono text-xs text-muted">
-          <span className="text-faint">VERSION </span>0.4.0
+          <span className="text-faint">VERSION </span>0.4.2
         </div>
       </section>
 
@@ -787,6 +847,11 @@ function AboutPanel() {
               icon={Cpu}
               title="HLS 加速"
               detail="同时下载、解密和排序分片，默认 8 路并发；复杂列表自动回退兼容模式。"
+            />
+            <ImplementationStep
+              icon={Play}
+              title="视频预览"
+              detail="HLS.js 按需加载播放分片，本地服务转发媒体解决跨域限制；关闭预览即释放播放器。"
             />
             <ImplementationStep
               icon={ShieldCheck}
@@ -1114,6 +1179,7 @@ function DiscoveryPanel() {
   const [ffmpeg, setFfmpeg] = useState<FfmpegUiState>({ status: "checking" });
   const [archiveBusy, setArchiveBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [previewVideo, setPreviewVideo] = useState<VideoCard | null>(null);
   const downloadSummary = useMemo(() => summarizeDownloadTasks(downloadTasks), [downloadTasks]);
   const hasActiveDownloads = downloadSummary.queued > 0 || downloadSummary.downloading > 0;
   const filteredTags = useMemo(() => {
@@ -1263,7 +1329,7 @@ function DiscoveryPanel() {
         <div>
           <SectionTitle kicker="发现" title="按标签或搜索归档" />
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
-            标签适合按栏目分页读取，搜索适合快速定位作品。勾选结果后直接写入当前下载目录，并继续按演员创建子文件夹。
+            标签适合按栏目分页读取，搜索适合快速定位作品。先预览确认，再勾选结果归档下载，程序会继续按演员创建子文件夹。
           </p>
         </div>
         <div className="flex items-center gap-2 font-mono text-xs text-faint">
@@ -1448,6 +1514,7 @@ function DiscoveryPanel() {
           onSelectAll={() => setSelectedTagIds(tagVideos.map((video) => video.id))}
           onClear={() => setSelectedTagIds([])}
           onArchive={() => void archiveAndDownload("tag")}
+          onPreview={setPreviewVideo}
           archiveBusy={archiveBusy === "tag"}
           disabled={hasActiveDownloads || archiveBusy !== null || ffmpeg.status !== "available"}
           resultNote={`${selectedTagIds.length}/${tagVideos.length} 已选择`}
@@ -1463,6 +1530,7 @@ function DiscoveryPanel() {
           onSelectAll={() => setSelectedSearchIds(searchItems.map((video) => video.id))}
           onClear={() => setSelectedSearchIds([])}
           onArchive={() => void archiveAndDownload("search")}
+          onPreview={setPreviewVideo}
           archiveBusy={archiveBusy === "search"}
           disabled={hasActiveDownloads || archiveBusy !== null || ffmpeg.status !== "available"}
           resultNote={`${selectedSearchIds.length}/${searchItems.length} 已选择`}
@@ -1493,6 +1561,7 @@ function DiscoveryPanel() {
           <ChevronRight className="size-4" />
         </Button>
       </div>
+      <VideoPreviewDialog video={previewVideo} onClose={() => setPreviewVideo(null)} />
     </div>
   );
 }
@@ -1505,6 +1574,7 @@ function DiscoveryResultCard({
   onSelectAll,
   onClear,
   onArchive,
+  onPreview,
   archiveBusy,
   disabled,
   resultNote,
@@ -1516,6 +1586,7 @@ function DiscoveryResultCard({
   onSelectAll: () => void;
   onClear: () => void;
   onArchive: () => void;
+  onPreview: (video: VideoCard) => void;
   archiveBusy: boolean;
   disabled: boolean;
   resultNote: string;
@@ -1579,27 +1650,40 @@ function DiscoveryResultCard({
           const checked = selectedIds.includes(video.id);
           return (
             <li key={video.id} className="border-b border-line last:border-0">
-              <label
+              <div
                 className={cn(
-                  "flex cursor-pointer items-start gap-3 px-3 py-3 transition-colors",
+                  "flex items-start gap-3 px-3 py-3 transition-colors",
                   checked && "bg-elevated",
                 )}
               >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => onToggle(video.id)}
-                  className="mt-1 size-4 accent-[var(--color-accent)]"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm text-fg">{video.title}</span>
-                  <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-faint">
-                    <span>{video.actor}</span>
-                    <span>{video.duration || "时长未知"}</span>
-                    <span>ID {video.id}</span>
+                <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggle(video.id)}
+                    className="mt-1 size-4 accent-[var(--color-accent)]"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-fg">{video.title}</span>
+                    <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-faint">
+                      <span>{video.actor}</span>
+                      <span>{video.duration || "时长未知"}</span>
+                      <span>ID {video.id}</span>
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onPreview(video)}
+                  aria-label={`预览 ${video.title}`}
+                  className="h-11 shrink-0"
+                >
+                  <Play className="size-3.5" />
+                  预览
+                </Button>
+              </div>
             </li>
           );
         })}

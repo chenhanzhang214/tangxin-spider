@@ -64,7 +64,7 @@ export function pagefindDataToVideoCard(data: unknown): VideoCard | null {
     return null;
   }
   if (parsedUrl.origin !== SITE_ORIGIN) return null;
-  const id = parsedUrl.pathname.match(/^\/v\/(\d+)\/?$/)?.[1];
+  const id = parsedUrl.pathname.match(/^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?v\/(\d+)\/?$/i)?.[1];
   if (!id) return null;
 
   const meta = candidate.meta ?? {};

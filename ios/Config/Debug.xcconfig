@@ -1,0 +1,2 @@
+// Simulator debug defaults to the local web preview. Override IOS_WEB_APP_URL for a device.
+IOS_WEB_APP_URL = http://127.0.0.1:8080

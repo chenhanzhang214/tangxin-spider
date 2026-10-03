@@ -61,8 +61,9 @@ export function resolveDesktopPaths({ packaged, resourcesPath, projectRoot }) {
   };
 }
 
-export function resolveDesktopRuntimePaths(userDataPath, version) {
-  const root = join(resolve(userDataPath), "runtime", String(version));
+export function resolveDesktopRuntimePaths(userDataPath, version, buildId = "") {
+  const directory = buildId ? `${version}-${buildId}` : String(version);
+  const root = join(resolve(userDataPath), "runtime", directory);
   return {
     root,
     serverEntry: join(root, "desktop-server", "server", "index.mjs"),

@@ -5,15 +5,20 @@ export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "txspider-theme";
 
-function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
+function getStoredTheme(): Theme {
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark") return stored;
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  // Keep the first render deterministic for SSR, then restore the user's
+  // preference after hydration so the theme toggle does not cause a mismatch.
+  const [theme, setThemeState] = useState<Theme>("dark");
+
+  useEffect(() => {
+    setThemeState(getStoredTheme());
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;

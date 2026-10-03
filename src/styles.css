@@ -12,6 +12,8 @@
   --color-accent: #d4b8a5;
   --color-accent-fg: #0c0a09;
   --color-clay: #c46a62;
+  --color-player: #080808;
+  --color-player-fg: #fafafa;
   --font-display: "Noto Serif SC", "Songti SC", serif;
   --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
   --font-mono: "IBM Plex Mono", "SF Mono", ui-monospace, Menlo, monospace;
@@ -45,10 +47,11 @@
     background: var(--color-bg);
     color: var(--color-fg);
     font-family: var(--font-sans);
-    min-height: 100%;
+    height: 100%;
   }
 
   body {
+    overflow: hidden;
     background-image: linear-gradient(
       180deg,
       color-mix(in oklab, var(--color-surface) 70%, var(--color-bg)) 0%,
@@ -77,6 +80,15 @@
     background: color-mix(in oklab, var(--color-accent) 40%, transparent);
     color: var(--color-fg);
   }
+}
+
+.video-preview-dialog {
+  width: calc(100% - 2rem);
+  max-height: calc(100dvh - 2rem);
+}
+
+.video-preview-media {
+  max-height: 60dvh;
 }
 
 @media (prefers-reduced-motion: reduce) {

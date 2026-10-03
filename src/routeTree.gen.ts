@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiCatCatchRouteImport } from './routes/api/cat-catch'
 import { Route as ApiMp4RouteImport } from './routes/api/mp4'
+import { Route as ApiPreviewRouteImport } from './routes/api/preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const ApiMp4Route = ApiMp4RouteImport.update({
   path: '/api/mp4',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPreviewRoute = ApiPreviewRouteImport.update({
+  id: '/api/preview',
+  path: '/api/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/cat-catch': typeof ApiCatCatchRoute
   '/api/mp4': typeof ApiMp4Route
+  '/api/preview': typeof ApiPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/cat-catch': typeof ApiCatCatchRoute
   '/api/mp4': typeof ApiMp4Route
+  '/api/preview': typeof ApiPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/cat-catch': typeof ApiCatCatchRoute
   '/api/mp4': typeof ApiMp4Route
+  '/api/preview': typeof ApiPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/cat-catch' | '/api/mp4'
+  fullPaths: '/' | '/api/cat-catch' | '/api/mp4' | '/api/preview'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/cat-catch' | '/api/mp4'
-  id: '__root__' | '/' | '/api/cat-catch' | '/api/mp4'
+  to: '/' | '/api/cat-catch' | '/api/mp4' | '/api/preview'
+  id: '__root__' | '/' | '/api/cat-catch' | '/api/mp4' | '/api/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiCatCatchRoute: typeof ApiCatCatchRoute
   ApiMp4Route: typeof ApiMp4Route
+  ApiPreviewRoute: typeof ApiPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMp4RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/preview': {
+      id: '/api/preview'
+      path: '/api/preview'
+      fullPath: '/api/preview'
+      preLoaderRoute: typeof ApiPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiCatCatchRoute: ApiCatCatchRoute,
   ApiMp4Route: ApiMp4Route,
+  ApiPreviewRoute: ApiPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

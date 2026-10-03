@@ -11,6 +11,12 @@ release-*/
 .installer-smoke-*/
 .tmp-*/
 .tanstack/
+electron-dist*/
+.xcodebuildmcp/
+ios/**/xcuserdata/
+ios/**/DerivedData/
+*.mobileprovision
+*.p8
 
 # Local runtime data
 downloads/
@@ -38,7 +44,8 @@ __pycache__/
 Thumbs.db
 
 # Workspace-only instructions and planning notes
-.grok/
+.grok/*
+!.grok/app-env.json
 AGENTS.md
 tasks/
 .node_modules.lock

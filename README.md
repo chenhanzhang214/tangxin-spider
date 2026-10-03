@@ -27,7 +27,7 @@
 
 ### 设置与关于
 
-- 在“设置”中自定义网页端 MP4 的保存目录，并在本机持久保存配置
+- 在“设置”中自定义 MP4 保存目录；桌面版支持弹出系统文件夹选择窗口，选中后自动保存，也可手动输入路径
 - 在“关于”中查看项目实现方式、MP4 下载链路和技术栈
 
 ### 爬取
@@ -40,6 +40,8 @@
 
 ### 发现与归档
 
+- 首页推荐、标签结果和搜索结果都提供“预览”，可在程序内播放、拖动进度、调整音量和全屏观看；默认静音播放，可用播放器音量按钮开启声音
+- 预览按需缓冲，不启动 MP4 下载；关闭弹窗会停止播放和分片请求。失败时可点击“重试预览”
 - 按标签分页读取作品，并支持一次选择多个分页结果
 - 使用源站 Pagefind 索引搜索标题、演员或其他关键词
 - 对标签结果或搜索结果勾选后，直接加入现有演员目录并批量下载 MP4
@@ -117,7 +119,7 @@ npm run desktop:package
 生成的便携版程序位于：
 
 ```text
-release\Tangxin-0.4.0-x64-portable.exe
+release\Tangxin-0.4.2-x64-portable.exe
 ```
 
 把这个 `.exe` 复制到 Windows 电脑后直接双击即可打开图形化窗口。它会在程序内部启动本地服务，爬取、MP4 并发下载、按演员归档等功能保持不变；不需要另外安装 Node.js，也不需要先打开 Chrome。
@@ -131,10 +133,10 @@ npm run desktop:installer
 生成的安装包位于：
 
 ```text
-release\Tangxin-0.4.0-Setup-x64.exe
+release\Tangxin-0.4.2-Setup-x64.exe
 ```
 
-安装包支持选择安装目录，并默认创建开始菜单和桌面快捷方式。安装后的程序包含本地服务和 `ffmpeg`，目标电脑不需要另装 Node.js；卸载时默认不会删除用户数据目录。安装包和便携版使用同一套完整功能，区别只是安装方式不同。
+安装包支持选择安装目录，并默认创建开始菜单和桌面快捷方式。安装后的程序包含本地服务和 `ffmpeg`，目标电脑不需要另装 Node.js；卸载时默认不会删除用户数据目录。安装包和便携版使用同一套完整功能，区别只是安装方式不同。重新构建同一版本时，程序按内置资源的内容指纹创建运行缓存，避免继续加载同版本的旧界面。
 
 已经构建好的 Windows x64 安装版和便携版（包括历史版本）统一放在 [GitHub Releases](https://github.com/chenhanzhang214/tangxin-spider/releases)。下载和使用这些程序时，同样需要搭配中国大陆以外的网络环境，并遵守适用的法律法规、服务条款、版权和隐私要求。
 
@@ -147,6 +149,18 @@ release\Tangxin-0.4.0-Setup-x64.exe
 ```bash
 npm run desktop:dev
 ```
+
+### iOS 工程（实验性，仅源码）
+
+本次 Release 提供 Windows x64 安装版和便携版，尚未发布可安装的 iOS 包。iOS 工程未在 macOS/Xcode 上完成编译和签名验证。
+
+仓库同时包含 `ios/TangxinApp.xcodeproj` 原生壳工程。它复用已部署的 Web 应用，不把 Windows Electron、本地 Node 服务或 Windows ffmpeg 带入 iOS。请在 macOS + Xcode、可用 Apple 开发者签名和 HTTPS Web 应用地址下执行：
+
+```bash
+IOS_WEB_APP_URL=https://your-app.example.com npm run ios:package
+```
+
+导出的 `.ipa` 位于 `release/ios/export/`。`npm run ios:build` 可先构建 iOS 模拟器版本；完整参数和签名选项见 [`ios/README.md`](ios/README.md)。
 
 ## 网页端使用
 
@@ -191,7 +205,7 @@ npm run desktop:dev
 
 ### 5. 工具与设置
 
-“工具”页提供 Python CLI 的下载入口和常用命令示例。“设置”页可以填写绝对路径，例如 `E:\Videos\spider`，保存后对之后的单个和批量 MP4 下载生效；程序仍会自动创建演员子文件夹。设置只改变新任务的保存位置，不会搬移已经下载的文件。
+“工具”页提供 Python CLI 的下载入口和常用命令示例。桌面版“设置”页点击“选择文件夹”会打开系统目录选择窗口，选中后自动保存；取消选择不修改现有目录。也可以填写绝对路径，例如 `E:\Videos\spider`，再点击“保存设置”。保存后对之后的单个和批量 MP4 下载生效；程序仍会自动创建演员子文件夹。下载进行中暂时不能修改目录。设置只改变新任务的保存位置，不会搬移已经下载的文件。
 
 “关于”页集中说明 Electron、演员目录抓取、HLS 分片并发、ffmpeg 转封装和文件校验等实现细节。
 
