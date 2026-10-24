@@ -75,8 +75,8 @@ export function resolveDesktopRuntimePaths(userDataPath, version, buildId = "") 
 export function buildServerEnvironment(environment, port, ffmpegPath) {
   return {
     ...environment,
-    HOST: "0.0.0.0",
-    NITRO_HOST: "0.0.0.0",
+    HOST: "127.0.0.1",
+    NITRO_HOST: "127.0.0.1",
     PORT: String(port),
     NITRO_PORT: String(port),
     ...(ffmpegPath ? { FFMPEG_PATH: ffmpegPath } : {}),

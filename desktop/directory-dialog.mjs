@@ -1,22 +1,25 @@
 import { isAbsolute } from "node:path";
+import { requireDesktopFrame } from "./ipc-security.mjs";
 
-export function registerDirectoryPicker({ ipcMain, dialog, getWindow, getServerUrl, getDefaultPath }) {
+export function registerDirectoryPicker({
+  ipcMain,
+  dialog,
+  getWindow,
+  getServerUrl,
+  getDefaultPath,
+}) {
   let selecting = false;
   ipcMain.handle("tangxin:select-download-directory", async (event, currentDirectory) => {
     const window = getWindow();
-    if (
-      !window || window.isDestroyed() ||
-      event.sender !== window.webContents ||
-      event.senderFrame !== window.webContents.mainFrame ||
-      new URL(event.senderFrame.url).origin !== new URL(getServerUrl()).origin
-    ) {
-      throw new Error("不允许此页面选择下载目录。");
-    }
+    requireDesktopFrame(event, window, getServerUrl());
     if (selecting) return null;
-    const defaultPath = typeof currentDirectory === "string" &&
-      currentDirectory.length <= 512 && isAbsolute(currentDirectory) &&
+    const defaultPath =
+      typeof currentDirectory === "string" &&
+      currentDirectory.length <= 512 &&
+      isAbsolute(currentDirectory) &&
       ![...currentDirectory].some((character) => character.charCodeAt(0) < 0x20)
-      ? currentDirectory : getDefaultPath();
+        ? currentDirectory
+        : getDefaultPath();
     selecting = true;
     try {
       const result = await dialog.showOpenDialog(window, {
@@ -25,7 +28,7 @@ export function registerDirectoryPicker({ ipcMain, dialog, getWindow, getServerU
         buttonLabel: "选择此文件夹",
         properties: ["openDirectory", "dontAddToRecent"],
       });
-      return result.canceled ? null : result.filePaths[0] ?? null;
+      return result.canceled ? null : (result.filePaths[0] ?? null);
     } finally {
       selecting = false;
     }

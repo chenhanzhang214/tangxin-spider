@@ -84,7 +84,7 @@ export async function handleFilesRequest(request: Request) {
     return json({
       root,
       localIps: getLocalIpv4Addresses(),
-      port: Number(process.env.PORT || process.env.NITRO_PORT || 8080),
+      port: Number(url.port || (url.protocol === "https:" ? 443 : 80)),
     });
   }
   if (request.method === "GET" && url.searchParams.get("list") === "1") {

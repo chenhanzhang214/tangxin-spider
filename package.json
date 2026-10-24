@@ -1,6 +1,6 @@
 {
   "name": "app-builder-workspace",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "糖心图谱：按演员整理 HLS 作品并保存本地 MP4",
   "main": "desktop/main.mjs",
   "private": true,
@@ -97,7 +97,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "electron": "44.3.0",
+    "electron": "44.9.3",
     "electron-builder": "26.15.3",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.1",
@@ -130,7 +130,12 @@
       {
         "from": ".output",
         "to": "desktop-server",
-        "filter": ["**/*", "!.tangxin-download-dir", "!**/__pycache__/**", "!**/*.pyc"]
+        "filter": [
+          "**/*",
+          "!.tangxin-download-dir",
+          "!**/__pycache__/**",
+          "!**/*.pyc"
+        ]
       },
       {
         "from": "node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe",

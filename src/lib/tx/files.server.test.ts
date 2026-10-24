@@ -37,7 +37,18 @@ test("files API: listing, path traversal check, and directory sync", async (t) =
     const data = (await res.json()) as { root: string; localIps: string[]; port: number };
     assert.equal(data.root, testRoot);
     assert.ok(Array.isArray(data.localIps));
+    assert.equal(data.port, 8080);
   });
+
+  await t.test(
+    "directory info uses the visible LAN port rather than the backend port",
+    async () => {
+      const response = await handleFilesRequest(
+        new Request("http://192.168.1.2:8081/api/files?dir=1"),
+      );
+      assert.equal(((await response.json()) as { port: number }).port, 8081);
+    },
+  );
 
   await t.test("GET /api/files?list=1 lists actor folders and files", async () => {
     const req = new Request("http://localhost:8080/api/files?list=1");

@@ -11,6 +11,8 @@ import { join, dirname } from "node:path";
 import { execFile } from "node:child_process";
 import { registerDirectoryPicker } from "./directory-dialog.mjs";
 import { desktopBuildId } from "./runtime-cache.mjs";
+import { createLanService } from "./lan-service.mjs";
+import { registerLanService } from "./lan-ipc.mjs";
 import {
   APP_TITLE,
   buildServerEnvironment,
@@ -34,6 +36,7 @@ let ownsLocalServer = false;
 let isQuitting = false;
 let port = getDesktopPort();
 let serverUrl = desktopServerUrl(port);
+let lanService = null;
 
 function logFilePath() {
   try {
@@ -289,6 +292,18 @@ async function start() {
   });
   configureDownloads();
   await ensureLocalServer();
+  lanService = createLanService({
+    settingsPath: join(app.getPath("userData"), "network-settings.json"),
+    getTargetUrl: () => serverUrl,
+    getPreferredPort: () => (port < 65535 ? port + 1 : 8081),
+  });
+  registerLanService({
+    ipcMain,
+    getWindow: () => mainWindow,
+    getServerUrl: () => serverUrl,
+    service: lanService,
+  });
+  await lanService.restore();
   createWindow();
 }
 
@@ -303,7 +318,9 @@ if (gotSingleInstanceLock) {
     if (isQuitting || !ownsLocalServer) return;
     event.preventDefault();
     isQuitting = true;
-    void stopLocalServer().finally(() => app.exit(0));
+    void Promise.resolve(lanService?.close())
+      .finally(() => stopLocalServer())
+      .finally(() => app.exit(0));
   });
 
   app

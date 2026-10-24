@@ -1,7 +1,5 @@
 import {
   AlertTriangle,
-  Check,
-  Copy,
   FolderOpen,
   FolderTree,
   HardDrive,
@@ -10,8 +8,6 @@ import {
   Save,
   Settings,
   ShieldCheck,
-  Tablet,
-  Wifi,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -24,6 +20,7 @@ import {
   normalizeDownloadDirectory,
   persistDownloadDirectory,
 } from "@/lib/tx/download-settings";
+import { LanServicePanel } from "./lan-service-panel";
 import { SectionTitle } from "@/features/workspace/presentation";
 import { isDownloadTaskActive } from "@/features/downloads/batch";
 
@@ -36,17 +33,12 @@ export function SettingsPanel() {
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean } | null>(null);
   const [canChooseDirectory, setCanChooseDirectory] = useState(false);
   const [choosingDirectory, setChoosingDirectory] = useState(false);
-  const [lanIps, setLanIps] = useState<string[]>([]);
-  const [lanPort, setLanPort] = useState(8080);
-  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setCanChooseDirectory(Boolean(window.tangxinDesktop?.selectDownloadDirectory));
     fetch("/api/files?dir=1")
       .then((r) => r.json())
       .then((data: { root?: string; localIps?: string[]; port?: number }) => {
-        if (data?.localIps) setLanIps(data.localIps);
-        if (data?.port) setLanPort(data.port);
         if (data?.root && !directory) {
           setDownloadDirectory(data.root);
           setDraft(data.root);
@@ -85,13 +77,6 @@ export function SettingsPanel() {
       // offline fallback
     }
     setFeedback({ message: "下载目录已保存，之后的新任务会写入这里。" });
-  }
-
-  function copyLanUrl(url: string) {
-    void navigator.clipboard?.writeText(url).then(() => {
-      setCopiedUrl(url);
-      setTimeout(() => setCopiedUrl(null), 2000);
-    });
   }
 
   function restoreDefault() {
@@ -218,68 +203,7 @@ export function SettingsPanel() {
         )}
       </section>
 
-      <section className="rounded-lg border border-line bg-surface p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-elevated text-accent">
-              <Wifi className="size-5" />
-            </div>
-            <div>
-              <h3 className="font-display text-xl text-fg">局域网开放与共享</h3>
-              <p className="mt-1 text-sm text-muted">
-                服务已对局域网开放。同一 Wi-Fi 下的 iPad、手机或电脑可直接通过浏览器访问全部功能。
-              </p>
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs text-accent">
-            <span className="size-2 rounded-full bg-accent animate-pulse" />
-            局域网端口已监听
-          </span>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-3">
-          <p className="text-xs text-muted">局域网访问地址（在 iPad Safari 中输入）：</p>
-          {lanIps.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              {lanIps.map((ip) => {
-                const url = `http://${ip}:${lanPort}`;
-                const isCopied = copiedUrl === url;
-                return (
-                  <div
-                    key={ip}
-                    className="flex items-center justify-between gap-3 rounded-md border border-line bg-bg px-4 py-3 font-mono text-sm text-fg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Tablet className="size-4 text-accent" />
-                      <span>{url}</span>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => copyLanUrl(url)}
-                      title="复制访问地址"
-                    >
-                      {isCopied ? <Check className="size-3.5 text-accent" /> : <Copy className="size-3.5" />}
-                      {isCopied ? "已复制" : "复制"}
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-md border border-line bg-bg px-4 py-3 font-mono text-sm text-muted">
-              http://[电脑局域网IP]:{lanPort}
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4 rounded-md border border-line/60 bg-bg/50 p-3 text-xs leading-relaxed text-muted">
-          💡 <strong className="text-fg">iPad 协同模式：</strong>
-          iPad 访问后可进行选片、爬取和点击下载。视频将调用电脑上的 ffmpeg 无损转封装并自动保存到电脑的下载文件夹中。
-          下载完成后，在 iPad 上的「媒体库」标签页中可直接在线流畅播放，或点击下载按钮保存到 iPad 的“文件”App 中。
-        </div>
-      </section>
+      <LanServicePanel />
 
       <section className="grid gap-4 md:grid-cols-3">
         <SettingNote
