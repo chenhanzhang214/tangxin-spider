@@ -1,29 +1,33 @@
 @echo off
 setlocal EnableExtensions
+rem Keep CMD source ASCII; the application prints UTF-8 text.
+chcp 65001 >nul
 cd /d "%~dp0"
-title 糖心图谱 - 局域网服务
+title Tangxin LAN Server
+set "PATH=%ProgramFiles%\nodejs;%LocalAppData%\Programs\nodejs;%PATH%"
 
 echo ===================================================
-echo   糖心图谱 局域网服务启动器
-echo   服务将监听 0.0.0.0:8080 (对局域网内所有设备开放)
+echo   Tangxin LAN Server
 echo ===================================================
 echo.
 
-rem Check node
 where node >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-  echo [错误] 未检测到 Node.js，请确保已安装 Node.js。
+  echo [ERROR] Node.js was not found. Install Node.js and reopen this file.
   pause
   exit /b 1
 )
 
-echo 正在启动服务...
-echo 启动成功后，iPad 等设备可直接通过浏览器访问。
-echo.
-
-call npm run dev
-if %ERRORLEVEL% neq 0 (
-  echo.
-  echo [错误] 服务意外停止。
+if not exist "scripts\lan-server.mjs" (
+  echo [ERROR] scripts\lan-server.mjs is missing. Keep this file with the source project.
   pause
+  exit /b 1
 )
+
+node scripts\lan-server.mjs %*
+set "SERVER_EXIT_CODE=%ERRORLEVEL%"
+echo.
+if not "%SERVER_EXIT_CODE%"=="0" echo [ERROR] Server stopped. Exit code: %SERVER_EXIT_CODE%
+echo Press any key to close this window.
+pause >nul
+exit /b %SERVER_EXIT_CODE%
