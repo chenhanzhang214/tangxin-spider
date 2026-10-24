@@ -4,7 +4,9 @@ import {
   copyFileSync,
   cpSync,
   existsSync,
+  lstatSync,
   mkdirSync,
+  readdirSync,
   writeFileSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
@@ -174,6 +176,34 @@ function serverPaths() {
   };
 }
 
+function downloadDirectoryConfigPath() {
+  const userDataPath = app.getPath("userData");
+  mkdirSync(userDataPath, { recursive: true });
+  const configPath = join(userDataPath, ".tangxin-download-dir");
+  if (existsSync(configPath)) return configPath;
+
+  // Older desktop builds stored this preference inside their versioned runtime.
+  // Copy the newest saved value forward without removing the old file.
+  try {
+    const runtimeRoot = join(userDataPath, "runtime");
+    const legacyConfigs = readdirSync(runtimeRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(runtimeRoot, entry.name, "desktop-server", ".tangxin-download-dir"))
+      .filter((path) => {
+        try {
+          return lstatSync(path).isFile();
+        } catch {
+          return false;
+        }
+      })
+      .sort((left, right) => lstatSync(right).mtimeMs - lstatSync(left).mtimeMs);
+    if (legacyConfigs.length > 0) copyFileSync(legacyConfigs[0], configPath);
+  } catch {
+    // A missing or unreadable old cache must not prevent the app from starting.
+  }
+  return configPath;
+}
+
 async function ensureLocalServer() {
   const paths = serverPaths();
   if (!existsSync(paths.serverEntry)) {
@@ -201,7 +231,11 @@ async function ensureLocalServer() {
   const child = utilityProcess.fork(paths.serverEntry, [], {
     cwd: paths.serverCwd,
     env: buildServerEnvironment(
-      { ...process.env, TX_WORKER_ROOT: join(paths.serverCwd, "worker") },
+      {
+        ...process.env,
+        TX_WORKER_ROOT: join(paths.serverCwd, "worker"),
+        TX_DOWNLOAD_DIR_CONFIG: downloadDirectoryConfigPath(),
+      },
       port,
       existsSync(paths.ffmpegPath) ? paths.ffmpegPath : "",
     ),

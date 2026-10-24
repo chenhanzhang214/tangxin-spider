@@ -14,21 +14,13 @@ if (
 if (!existsSync(native)) throw new Error("请先执行 npm run native:build");
 const root = resolve(".output/worker");
 mkdirSync(root, { recursive: true });
+const pythonRoot = join(root, "python");
+mkdirSync(pythonRoot, { recursive: true });
 // Archive is a pinned official artifact; no downloads or machine-wide installs here.
-const expanded = spawnSync(
-  "powershell.exe",
-  [
-    "-NoProfile",
-    "-NonInteractive",
-    "-Command",
-    "Expand-Archive -LiteralPath $env:TX_RUNTIME_ZIP -DestinationPath $env:TX_RUNTIME_DEST -Force",
-  ],
-  {
-    windowsHide: true,
-    stdio: "inherit",
-    env: { ...process.env, TX_RUNTIME_ZIP: runtime, TX_RUNTIME_DEST: join(root, "python") },
-  },
-);
+const expanded = spawnSync("tar.exe", ["-xf", runtime, "-C", pythonRoot], {
+  windowsHide: true,
+  stdio: "inherit",
+});
 if (expanded.status !== 0) throw new Error("Python 运行时解压失败");
 cpSync("backend/tangxin", join(root, "backend/tangxin"), {
   recursive: true,

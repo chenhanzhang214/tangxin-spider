@@ -1,6 +1,6 @@
 # 糖心图谱
 
-当前桌面版：**0.5.2**。完整安装包内置运行环境，不需要自行安装 Python、Node.js 或 C++。
+当前桌面版：**0.5.3**。完整安装包内置运行环境，不需要自行安装 Python、Node.js 或 C++。
 
 ### 代码结构
 
@@ -168,7 +168,7 @@ npm run desktop:package
 生成的便携版程序位于：
 
 ```text
-release\Tangxin-0.5.2-x64-portable.exe
+release\Tangxin-0.5.3-x64-portable.exe
 ```
 
 把这个 `.exe` 复制到 Windows 电脑后直接双击即可打开图形化窗口。它会在程序内部启动本地服务，爬取、MP4 并发下载、按演员归档等功能保持不变；不需要另外安装 Node.js，也不需要先打开 Chrome。
@@ -182,7 +182,7 @@ npm run desktop:installer
 生成的安装包位于：
 
 ```text
-release\Tangxin-0.5.2-Setup-x64.exe
+release\Tangxin-0.5.3-Setup-x64.exe
 ```
 
 安装包支持选择安装目录，并默认创建开始菜单和桌面快捷方式。安装后的程序包含本地服务和 `ffmpeg`，目标电脑不需要另装 Node.js；卸载时默认不会删除用户数据目录。安装包和便携版使用同一套完整功能，区别只是安装方式不同。重新构建同一版本时，程序按内置资源的内容指纹创建运行缓存，避免继续加载同版本的旧界面。

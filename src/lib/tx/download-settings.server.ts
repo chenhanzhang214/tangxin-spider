@@ -1,13 +1,17 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { networkInterfaces } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import {
   DEFAULT_DOWNLOAD_DIRECTORY,
   isValidDownloadDirectory,
   normalizeDownloadDirectory,
 } from "./download-settings.ts";
 
-const CONFIG_FILE = join(process.cwd(), ".tangxin-download-dir");
+const configuredPath = process.env.TX_DOWNLOAD_DIR_CONFIG?.trim();
+const CONFIG_FILE =
+  configuredPath && isAbsolute(configuredPath)
+    ? resolve(configuredPath)
+    : join(process.cwd(), ".tangxin-download-dir");
 let cachedDir: string | null = null;
 
 export function getServerDownloadDirectory(): string {
