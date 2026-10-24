@@ -3,11 +3,13 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, open, rename, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
+import { NativeWorkerError } from "./worker.server.ts";
 import {
   DEFAULT_DOWNLOAD_DIRECTORY,
   isValidDownloadDirectory,
   normalizeDownloadDirectory,
 } from "./download-settings.ts";
+import { getServerDownloadDirectory } from "./download-settings.server.ts";
 import {
   mapHlsProgressToDownloadProgress,
   type DownloadProgressUpdate,
@@ -68,18 +70,14 @@ function deploymentOnlyMessage() {
 }
 
 function downloadRoot(downloadDirectory?: string) {
-  if (downloadDirectory !== undefined) {
+  if (downloadDirectory !== undefined && downloadDirectory.trim() !== "") {
     const normalized = normalizeDownloadDirectory(downloadDirectory);
     if (!isValidDownloadDirectory(normalized)) {
       throw new Error("下载目录必须是绝对路径，且长度不能超过 512 个字符。");
     }
     return normalized;
   }
-  const configured = normalizeDownloadDirectory(process.env.TX_DOWNLOAD_DIR ?? "");
-  if (isValidDownloadDirectory(configured)) return configured;
-  return process.platform === "win32"
-    ? DEFAULT_MP4_DOWNLOAD_DIR
-    : join(process.cwd(), "downloads", "spider");
+  return getServerDownloadDirectory();
 }
 
 export function getHlsConcurrency() {
@@ -277,6 +275,9 @@ async function remuxMp4(
       concurrency = prefetched.concurrency;
       downloadMs = prefetched.downloadMs;
     } catch (prefetchError) {
+      // Native failures are local resource failures, not HLS incompatibility.
+      // Retrying via FFmpeg would redownload the entire video and hide the cause.
+      if (prefetchError instanceof NativeWorkerError) throw prefetchError;
       const detail = errorMessage(prefetchError);
       console.warn(`[mp4] parallel prefetch unavailable for ${id}; using direct mode: ${detail}`);
       await rm(temporaryPath, { force: true });

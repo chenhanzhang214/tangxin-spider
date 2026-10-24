@@ -24,9 +24,18 @@ child.on("error", (error) => {
   process.exit(1);
 });
 
-child.on("exit", (code, signal) => {
+child.on("exit", async (code, signal) => {
   if (signal) {
     process.exit(1);
   }
-  process.exit(code ?? 1);
+  if (code !== 0) process.exit(code ?? 1);
+  try {
+    await import("./stage-workers.mjs");
+    const { sanitizeBuildPaths } = await import("./sanitize-build-paths.mjs");
+    sanitizeBuildPaths();
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+  process.exit(0);
 });

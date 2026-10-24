@@ -1,6 +1,6 @@
 {
   "name": "app-builder-workspace",
-  "version": "0.4.2",
+  "version": "0.5.1",
   "description": "糖心图谱：按演员整理 HLS 作品并保存本地 MP4",
   "main": "desktop/main.mjs",
   "private": true,
@@ -10,10 +10,12 @@
     "nf3": "0.3.17"
   },
   "scripts": {
+    "native:build": "cmake -S native -B native/build -DCMAKE_BUILD_TYPE=Release && cmake --build native/build --config Release",
+    "test:workers": "python -m unittest discover -s backend/tests -p test_*.py && ctest --test-dir native/build --output-on-failure && node --experimental-strip-types --test src/lib/tx/worker.server.test.ts",
     "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
     "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
     "desktop:build:raw": "node scripts/with-app-env.mjs vite build",
-    "desktop:build": "node scripts/desktop-build.mjs",
+    "desktop:build": "npm run native:build && node scripts/desktop-build.mjs",
     "desktop:run": "electron desktop/main.mjs",
     "desktop:dev": "npm run desktop:build && npm run desktop:run",
     "desktop:package:raw": "electron-builder --win portable",
@@ -29,7 +31,7 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test scripts/*.test.mjs desktop/*.test.mjs && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/tx/mp4-utils.test.ts src/lib/tx/mp4.server.test.ts src/lib/tx/preview.server.test.ts src/lib/tx/mp4-progress.test.ts src/lib/tx/hls-prefetch.test.ts src/lib/tx/hls-prefetch.server.test.ts src/lib/tx/cat-catch.test.ts src/lib/tx/cat-catch.server.test.ts src/lib/tx/download-progress.test.ts src/lib/tx/download-settings.test.ts src/lib/tx/parse.test.ts src/lib/tx/search.server.test.ts src/lib/tx/archive-utils.test.ts",
+    "test": "node --test scripts/*.test.mjs desktop/*.test.mjs && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/tx/mp4-utils.test.ts src/lib/tx/mp4.server.test.ts src/lib/tx/preview.server.test.ts src/lib/tx/mp4-progress.test.ts src/lib/tx/hls-prefetch.test.ts src/lib/tx/hls-prefetch.server.test.ts src/lib/tx/cat-catch.test.ts src/lib/tx/cat-catch.server.test.ts src/lib/tx/download-progress.test.ts src/lib/tx/download-settings.test.ts src/lib/tx/parse.test.ts src/lib/tx/search.server.test.ts src/lib/tx/archive-utils.test.ts src/lib/tx/files.server.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -121,12 +123,14 @@
     },
     "files": [
       "desktop/**/*",
+      "!desktop/**/*.test.mjs",
       "package.json"
     ],
     "extraResources": [
       {
         "from": ".output",
-        "to": "desktop-server"
+        "to": "desktop-server",
+        "filter": ["**/*", "!.tangxin-download-dir", "!**/__pycache__/**", "!**/*.pyc"]
       },
       {
         "from": "node_modules/@ffmpeg-installer/win32-x64/ffmpeg.exe",

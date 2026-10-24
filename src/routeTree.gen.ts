@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiCatCatchRouteImport } from './routes/api/cat-catch'
+import { Route as ApiFilesRouteImport } from './routes/api/files'
 import { Route as ApiMp4RouteImport } from './routes/api/mp4'
 import { Route as ApiPreviewRouteImport } from './routes/api/preview'
 
@@ -22,6 +23,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiCatCatchRoute = ApiCatCatchRouteImport.update({
   id: '/api/cat-catch',
   path: '/api/cat-catch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFilesRoute = ApiFilesRouteImport.update({
+  id: '/api/files',
+  path: '/api/files',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMp4Route = ApiMp4RouteImport.update({
@@ -38,12 +44,14 @@ const ApiPreviewRoute = ApiPreviewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/cat-catch': typeof ApiCatCatchRoute
+  '/api/files': typeof ApiFilesRoute
   '/api/mp4': typeof ApiMp4Route
   '/api/preview': typeof ApiPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/cat-catch': typeof ApiCatCatchRoute
+  '/api/files': typeof ApiFilesRoute
   '/api/mp4': typeof ApiMp4Route
   '/api/preview': typeof ApiPreviewRoute
 }
@@ -51,20 +59,28 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/cat-catch': typeof ApiCatCatchRoute
+  '/api/files': typeof ApiFilesRoute
   '/api/mp4': typeof ApiMp4Route
   '/api/preview': typeof ApiPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/cat-catch' | '/api/mp4' | '/api/preview'
+  fullPaths: '/' | '/api/cat-catch' | '/api/files' | '/api/mp4' | '/api/preview'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/cat-catch' | '/api/mp4' | '/api/preview'
-  id: '__root__' | '/' | '/api/cat-catch' | '/api/mp4' | '/api/preview'
+  to: '/' | '/api/cat-catch' | '/api/files' | '/api/mp4' | '/api/preview'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/cat-catch'
+    | '/api/files'
+    | '/api/mp4'
+    | '/api/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiCatCatchRoute: typeof ApiCatCatchRoute
+  ApiFilesRoute: typeof ApiFilesRoute
   ApiMp4Route: typeof ApiMp4Route
   ApiPreviewRoute: typeof ApiPreviewRoute
 }
@@ -83,6 +99,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cat-catch'
       fullPath: '/api/cat-catch'
       preLoaderRoute: typeof ApiCatCatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/files': {
+      id: '/api/files'
+      path: '/api/files'
+      fullPath: '/api/files'
+      preLoaderRoute: typeof ApiFilesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mp4': {
@@ -105,6 +128,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiCatCatchRoute: ApiCatCatchRoute,
+  ApiFilesRoute: ApiFilesRoute,
   ApiMp4Route: ApiMp4Route,
   ApiPreviewRoute: ApiPreviewRoute,
 }

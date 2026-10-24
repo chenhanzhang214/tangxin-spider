@@ -27,6 +27,10 @@ test("same-version rebuilds cannot reuse old UI or server runtime caches", () =>
 
     writeFileSync(join(fixture, "server", "index.mjs"), "server revision 2");
     assert.notEqual(desktopBuildId(fixture), updatedUi);
+    const updatedServer = desktopBuildId(fixture);
+    mkdirSync(join(fixture, "worker"));
+    writeFileSync(join(fixture, "worker", "worker.py"), "worker revision 1");
+    assert.notEqual(desktopBuildId(fixture), updatedServer);
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }

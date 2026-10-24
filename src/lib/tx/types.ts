@@ -61,6 +61,20 @@ export type ActorBundle = {
   videos: VideoCard[];
 };
 
+export type FileEntry = {
+  name: string;
+  size: number;
+  sizeMB: number;
+  mtime: number;
+};
+
+export type ActorFolder = {
+  actor: string;
+  count: number;
+  totalSizeMB: number;
+  files: FileEntry[];
+};
+
 export function hlsUrl(id: string) {
   return `${CDN_ORIGIN}/videos/${id}/index.m3u8`;
 }

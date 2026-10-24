@@ -1,37 +1,37 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0c0a09;
-  --color-surface: #161311;
-  --color-elevated: #1e1916;
+  --color-bg: #151412;
+  --color-surface: #1d1c19;
+  --color-elevated: #292722;
   --color-fg: #f4ebe3;
-  --color-muted: #a39488;
-  --color-faint: #6e635b;
+  --color-muted: #b5ada1;
+  --color-faint: #a0978b;
   --color-line: color-mix(in oklab, var(--color-fg) 12%, transparent);
   --color-line-strong: color-mix(in oklab, var(--color-fg) 22%, transparent);
-  --color-accent: #d4b8a5;
+  --color-accent: #e6b786;
   --color-accent-fg: #0c0a09;
   --color-clay: #c46a62;
   --color-player: #080808;
   --color-player-fg: #fafafa;
-  --font-display: "Noto Serif SC", "Songti SC", serif;
-  --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
-  --font-mono: "IBM Plex Mono", "SF Mono", ui-monospace, Menlo, monospace;
+  --font-display: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+  --font-sans: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", ui-monospace, monospace;
   --radius-xs: 4px;
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
 :root[data-theme="light"] {
-  --color-bg: #f7f3ee;
-  --color-surface: #fffdf9;
-  --color-elevated: #eee8e0;
+  --color-bg: #f5f3ef;
+  --color-surface: #fffefa;
+  --color-elevated: #eeebe4;
   --color-fg: #2b2521;
   --color-muted: #6f6259;
-  --color-faint: #998b80;
-  --color-accent: #9b6548;
+  --color-faint: #756b61;
+  --color-accent: #93552e;
   --color-accent-fg: #fffaf5;
   --color-clay: #b4524d;
 }
@@ -52,13 +52,9 @@
 
   body {
     overflow: hidden;
-    background-image: linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--color-surface) 70%, var(--color-bg)) 0%,
-      var(--color-bg) 30%,
-      var(--color-bg) 100%
-    );
-    transition: background-color 220ms ease, color 220ms ease;
+    transition:
+      background-color 220ms ease,
+      color 220ms ease;
   }
 
   button,
@@ -72,13 +68,87 @@
   }
 
   @keyframes page-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   ::selection {
     background: color-mix(in oklab, var(--color-accent) 40%, transparent);
     color: var(--color-fg);
+  }
+}
+
+/* Shared interaction and spacing rules; all feature panels use these tokens. */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+  input,
+  select,
+  textarea {
+    min-width: 0;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: 44px;
+  }
+  input::placeholder {
+    color: var(--color-faint);
+  }
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    overflow-wrap: anywhere;
+  }
+  summary {
+    cursor: pointer;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+}
+
+.toolbar-icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  transition:
+    background-color 180ms,
+    color 180ms;
+}
+.toolbar-icon:hover {
+  background: var(--color-elevated);
+  color: var(--color-fg);
+}
+.video-tile {
+  box-shadow: 0 2px 6px rgb(0 0 0 / 3%);
+}
+.workspace-content > div > section {
+  min-width: 0;
+}
+@media (max-width: 479px) {
+  .selection-toolbar {
+    position: static;
   }
 }
 

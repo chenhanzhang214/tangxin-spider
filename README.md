@@ -1,5 +1,39 @@
 # 糖心图谱
 
+当前桌面版：**0.5.1**。完整安装包内置运行环境，不需要自行安装 Python、Node.js 或 C++。
+
+### 0.5.1 代码结构
+
+| 目录 | 职责 |
+| --- | --- |
+| `src/features/workspace` | 导航、布局与共享展示 |
+| `src/features/catalog` | 首页、发现、演员爬取与归档 |
+| `src/features/downloads` | MP4 批处理、状态与队列 |
+| `src/features/settings` | 设置、关于与导出工具 |
+| `backend/tangxin` | Python 目录解析、去重与归档规划 |
+| `native` | C++17 本地分片流式合并 |
+| `src/lib/tx/worker.server.ts` | 固定操作与参数、受控子进程、超时及协议检查 |
+
+第一阶段保留 Node 的网络请求、HLS AES 解密、Pagefind 搜索、预览和 FFmpeg 调度；网页/Vercel 构建继续使用 TypeScript 适配器，不调用本机工作进程。C 能力复用 FFmpeg，不是自写编解码器。
+
+### 构建完整桌面版（开发者）
+
+需要 CMake、C++17 编译器、用于测试的 Python，以及 Node/npm。官方 Python 嵌入包放在 `.runtime-downloads/python-3.14.8-embed-amd64.zip`，构建会强制校验 SHA-256：`a93abe456ab01bd96d7a085b3cdb6566b3063f4241360d114142fbdb07f0a310`。
+
+Windows 下载遵循 Clash 订阅偏好：
+
+```powershell
+node "<clash-download 技能目录>/scripts/clash-download.cjs" download https://www.python.org/ftp/python/3.14.8/python-3.14.8-embed-amd64.zip --out .runtime-downloads/python-3.14.8-embed-amd64.zip --sha256 a93abe456ab01bd96d7a085b3cdb6566b3063f4241360d114142fbdb07f0a310
+cmake -S native -B native/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+npm run desktop:build
+npm run test:workers
+npm run desktop:installer
+```
+
+`desktop:build` 编译原生程序并复制已校验运行时；不在构建脚本中偷偷联网下载。源站解析失败会报告错误，原生合并失败不会触发整部视频的重复下载。关闭外部 Chrome 不影响本机下载；退出本应用会停止其子进程。
+
+维护版回退：保留的 0.4.2 安装包可重新运行，本次没有迁移持久化设置或移动已有下载文件。打包后的程序未配置代码签名证书，Windows 可能显示未知发布者。
+
 糖心图谱是一个面向 `tangxinvlog.app` 的目录分析与视频归档工具。它会读取站点公开的 HTML 页面，展示站点路由、首页栏目、演员云和标签云，并支持按演员、标签或搜索结果归档作品，生成按演员编号整理的 `m3u8` 播放列表目录。
 
 > [!WARNING]
@@ -75,7 +109,7 @@
 - npm
 - 可访问项目配置的内容源站点
 
-Python 只在使用独立 CLI 脚本时需要。网页端的 MP4 功能会优先使用项目依赖中的 Windows `ffmpeg`；也支持使用系统 PATH 中的 `ffmpeg` 或 `FFMPEG_PATH` 指定的路径。分片并发数默认为 8，可在启动前通过 `TX_HLS_CONCURRENCY` 调整为 1–16；并发越高不一定越快，通常建议保持 8。
+网页开发模式不需要 Python；0.5.0 桌面版会使用随包内置的 Python。网页端的 MP4 功能优先使用项目依赖中的 Windows `ffmpeg`；也支持系统 PATH 中的 `ffmpeg` 或 `FFMPEG_PATH` 指定路径。分片并发数默认 8，可通过 `TX_HLS_CONCURRENCY` 调整为 1–16；并发越高不一定越快。
 
 ### 安装依赖
 
@@ -119,7 +153,7 @@ npm run desktop:package
 生成的便携版程序位于：
 
 ```text
-release\Tangxin-0.4.2-x64-portable.exe
+release\Tangxin-0.5.1-x64-portable.exe
 ```
 
 把这个 `.exe` 复制到 Windows 电脑后直接双击即可打开图形化窗口。它会在程序内部启动本地服务，爬取、MP4 并发下载、按演员归档等功能保持不变；不需要另外安装 Node.js，也不需要先打开 Chrome。
@@ -133,7 +167,7 @@ npm run desktop:installer
 生成的安装包位于：
 
 ```text
-release\Tangxin-0.4.2-Setup-x64.exe
+release\Tangxin-0.5.1-Setup-x64.exe
 ```
 
 安装包支持选择安装目录，并默认创建开始菜单和桌面快捷方式。安装后的程序包含本地服务和 `ffmpeg`，目标电脑不需要另装 Node.js；卸载时默认不会删除用户数据目录。安装包和便携版使用同一套完整功能，区别只是安装方式不同。重新构建同一版本时，程序按内置资源的内容指纹创建运行缓存，避免继续加载同版本的旧界面。
@@ -152,7 +186,7 @@ npm run desktop:dev
 
 ### iOS 工程（实验性，仅源码）
 
-本次 Release 提供 Windows x64 安装版和便携版，尚未发布可安装的 iOS 包。iOS 工程未在 macOS/Xcode 上完成编译和签名验证。
+本次仅发布 Windows x64 安装版和便携版。iOS 工程尚未在 macOS/Xcode 上完成编译签名验证，不提供 iOS 安装包。
 
 仓库同时包含 `ios/TangxinApp.xcodeproj` 原生壳工程。它复用已部署的 Web 应用，不把 Windows Electron、本地 Node 服务或 Windows ffmpeg 带入 iOS。请在 macOS + Xcode、可用 Apple 开发者签名和 HTTPS Web 应用地址下执行：
 
@@ -161,6 +195,17 @@ IOS_WEB_APP_URL=https://your-app.example.com npm run ios:package
 ```
 
 导出的 `.ipa` 位于 `release/ios/export/`。`npm run ios:build` 可先构建 iOS 模拟器版本；完整参数和签名选项见 [`ios/README.md`](ios/README.md)。
+
+### 局域网与媒体库（0.5.1）
+
+1. 在电脑启动桌面版，在“设置”里查看局域网访问地址。
+2. iPad、手机或另一台电脑连接同一受信任的局域网，通过浏览器打开该地址。
+3. “媒体库”按演员列出电脑下载目录中的 MP4，可播放、拖动进度并保存至当前设备。
+4. 从移动端发起的归档下载仍在运行服务的电脑执行；将成品保存到手机或 iPad 时，使用媒体库的保存操作。
+
+服务默认监听全部网卡的 8080 端口，端口占用时桌面版会尝试备用端口。Windows 防火墙需要允许受信任的专用网络访问；应用不自动修改防火墙。当前没有登录认证，同一可达网络中的设备可访问媒体库与下载设置，应仅用于受信任的局域网，避免开放公网端口。
+
+播放接口支持单段 Range（206）、后缀范围和越界拒绝，并拒绝跨站浏览器请求、路径穿越与演员目录联接。
 
 ## 网页端使用
 
@@ -319,7 +364,7 @@ C:\Users\Public\Videos\Tangxin/
 - `*.m3u8`：已将相对媒体地址改写为绝对地址的 HLS 播放列表
 - `*.mp4`：使用 `ffmpeg` 转封装并检查完成后的本地视频文件
 
-网页端默认目录为 `C:\Users\Public\Videos\Tangxin`。运行时可以在“设置”页改成其他绝对路径，配置保存在本机浏览器存储中，之后的单个和批量 MP4 请求会携带该目录；`TX_DOWNLOAD_DIR` 仍可作为服务端没有请求级目录时的环境变量回退，`--out` 可单独覆盖 Python CLI 的输出目录。
+网页端默认目录为 `C:\Users\Public\Videos\Tangxin`。运行时可以在“设置”页改成其他绝对路径，配置保存在本机浏览器存储与电脑端目录配置中，之后的单个和批量 MP4 请求会携带该目录；`TX_DOWNLOAD_DIR` 仍可作为服务端没有请求级目录时的环境变量回退，`--out` 可单独覆盖 Python CLI 的输出目录。
 
 ## 项目结构
 

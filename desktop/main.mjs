@@ -1,6 +1,14 @@
 import { app, BrowserWindow, dialog, ipcMain, session, shell, utilityProcess } from "electron";
-import { appendFileSync, copyFileSync, cpSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
+import { execFile } from "node:child_process";
 import { registerDirectoryPicker } from "./directory-dialog.mjs";
 import { desktopBuildId } from "./runtime-cache.mjs";
 import {
@@ -121,11 +129,18 @@ function serverPaths() {
 
   if (!app.isPackaged) return sourcePaths;
 
-  if (!existsSync(sourcePaths.serverEntry) || !existsSync(join(sourcePaths.serverCwd, "public", "favicon.svg"))) {
+  if (
+    !existsSync(sourcePaths.serverEntry) ||
+    !existsSync(join(sourcePaths.serverCwd, "public", "favicon.svg"))
+  ) {
     throw new Error("桌面资源不完整，请重新安装程序。");
   }
   const buildId = desktopBuildId(sourcePaths.serverCwd);
-  const runtimePaths = resolveDesktopRuntimePaths(app.getPath("userData"), app.getVersion(), buildId);
+  const runtimePaths = resolveDesktopRuntimePaths(
+    app.getPath("userData"),
+    app.getVersion(),
+    buildId,
+  );
   const runtimeReady =
     existsSync(join(runtimePaths.root, ".ready")) &&
     existsSync(runtimePaths.serverEntry) &&
@@ -150,7 +165,9 @@ function serverPaths() {
 
   return {
     ...runtimePaths,
-    ffmpegPath: existsSync(runtimePaths.ffmpegPath) ? runtimePaths.ffmpegPath : sourcePaths.ffmpegPath,
+    ffmpegPath: existsSync(runtimePaths.ffmpegPath)
+      ? runtimePaths.ffmpegPath
+      : sourcePaths.ffmpegPath,
   };
 }
 
@@ -170,7 +187,9 @@ async function ensureLocalServer() {
     log(status.message ?? `跳过端口 ${candidate}。`);
   }
   if (selectedPort === null) {
-    throw new Error(`没有找到可用的本地端口（已尝试 ${desktopPortCandidates(getDesktopPort()).length} 个端口）。`);
+    throw new Error(
+      `没有找到可用的本地端口（已尝试 ${desktopPortCandidates(getDesktopPort()).length} 个端口）。`,
+    );
   }
   port = selectedPort;
   serverUrl = desktopServerUrl(port);
@@ -178,7 +197,11 @@ async function ensureLocalServer() {
 
   const child = utilityProcess.fork(paths.serverEntry, [], {
     cwd: paths.serverCwd,
-    env: buildServerEnvironment(process.env, port, existsSync(paths.ffmpegPath) ? paths.ffmpegPath : ""),
+    env: buildServerEnvironment(
+      { ...process.env, TX_WORKER_ROOT: join(paths.serverCwd, "worker") },
+      port,
+      existsSync(paths.ffmpegPath) ? paths.ffmpegPath : "",
+    ),
     stdio: "pipe",
     serviceName: "Tangxin local server",
   });
@@ -241,7 +264,17 @@ async function stopLocalServer() {
   const child = localServer;
   localServer = null;
   ownsLocalServer = false;
-  child.kill();
+  if (process.platform === "win32" && child.pid) {
+    // Terminate only our own process tree, including active Python/C++/FFmpeg work.
+    await new Promise((resolve) =>
+      execFile(
+        "taskkill.exe",
+        ["/PID", String(child.pid), "/T", "/F"],
+        { windowsHide: true },
+        resolve,
+      ),
+    );
+  } else child.kill();
   await wait(250);
 }
 
@@ -273,17 +306,20 @@ if (gotSingleInstanceLock) {
     void stopLocalServer().finally(() => app.exit(0));
   });
 
-  app.whenReady().then(() => start()).catch(async (error) => {
-    const message = error instanceof Error ? error.message : String(error);
-    log(`[fatal] ${message}`);
-    await dialog.showMessageBox({
-      type: "error",
-      title: APP_TITLE,
-      message: "桌面程序启动失败",
-      detail: message,
+  app
+    .whenReady()
+    .then(() => start())
+    .catch(async (error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      log(`[fatal] ${message}`);
+      await dialog.showMessageBox({
+        type: "error",
+        title: APP_TITLE,
+        message: "桌面程序启动失败",
+        detail: message,
+      });
+      app.exit(1);
     });
-    app.exit(1);
-  });
 
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();

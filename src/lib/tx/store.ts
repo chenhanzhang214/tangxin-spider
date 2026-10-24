@@ -9,7 +9,7 @@ import { DEFAULT_DOWNLOAD_DIRECTORY } from "./download-settings";
 import { mergeArchiveItemsIntoBundles, type ArchiveItem } from "./archive-utils";
 import type { ActorBundle, HomeData, NamedCount, VideoCard } from "./types";
 
-export type TabId = "map" | "crawl" | "discover" | "result" | "script" | "settings" | "about";
+export type TabId = "map" | "crawl" | "discover" | "result" | "media" | "script" | "settings" | "about";
 
 type LogLine = { t: number; msg: string };
 

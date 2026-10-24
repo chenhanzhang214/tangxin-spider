@@ -35,7 +35,7 @@ export function VideoPreviewDialog({
         >
           {video && (
             <>
-              <header className="flex shrink-0 items-start justify-between gap-4 border-b border-line p-4">
+              <header className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-4 border-b border-line bg-surface p-4 sm:p-5">
                 <div className="min-w-0">
                   <p className="text-xs text-accent">视频预览</p>
                   <Dialog.Title className="mt-1 line-clamp-2 break-words font-display text-lg text-fg">

@@ -74,8 +74,8 @@ test("passes the port and packaged ffmpeg path to the server", () => {
     buildServerEnvironment({ VITE_AUTH_ENABLED: "false" }, 8099, "C:\\app\\ffmpeg.exe"),
     {
       VITE_AUTH_ENABLED: "false",
-      HOST: "127.0.0.1",
-      NITRO_HOST: "127.0.0.1",
+      HOST: "0.0.0.0",
+      NITRO_HOST: "0.0.0.0",
       PORT: "8099",
       NITRO_PORT: "8099",
       FFMPEG_PATH: "C:\\app\\ffmpeg.exe",

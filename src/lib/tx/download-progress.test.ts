@@ -21,6 +21,17 @@ function task(key: string, status: DownloadTask["status"]): DownloadTask {
 }
 
 describe("download progress", () => {
+  it("uses bounded native byte progress during merging", () => {
+    const progress = {
+      phase: "merging" as const,
+      completedSegments: 2,
+      totalSegments: 2,
+      totalBytes: 100,
+    };
+    assert.equal(mapHlsProgressToDownloadProgress({ ...progress, mergedBytes: 0 }).percent, 88);
+    assert.equal(mapHlsProgressToDownloadProgress({ ...progress, mergedBytes: 50 }).percent, 89);
+    assert.equal(mapHlsProgressToDownloadProgress({ ...progress, mergedBytes: 200 }).percent, 90);
+  });
   it("counts queued, active, and terminal tasks into a stable percentage", () => {
     const summary = summarizeDownloadTasks([
       task("queued", "queued"),

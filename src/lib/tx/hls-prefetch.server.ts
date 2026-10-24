@@ -8,6 +8,7 @@ import {
   type HlsMediaPlan,
 } from "./hls-prefetch.ts";
 import { SITE_ORIGIN } from "./types.ts";
+import { desktopWorkerEnabled, mergeNativeSegments } from "./worker.server.ts";
 
 const DEFAULT_CONCURRENCY = 8;
 const DEFAULT_RETRIES = 3;
@@ -31,6 +32,8 @@ export type HlsPrefetchProgress = {
   phase: "playlist" | "segments" | "merging";
   completedSegments: number;
   totalSegments: number;
+  mergedBytes?: number;
+  totalBytes?: number;
 };
 
 export type HlsPrefetchResult = {
@@ -196,17 +199,31 @@ export async function prefetchHlsToTransportStream(
     completedSegments: totalSegments,
     totalSegments,
   });
-  const transport = await open(transportPath, "w");
   let bytes = 0;
-  try {
-    for (const segmentPath of segmentPaths) {
-      const segment = await readFile(segmentPath);
-      await transport.writeFile(segment);
-      bytes += segment.length;
-      await rm(segmentPath, { force: true });
+  if (desktopWorkerEnabled()) {
+    bytes = await mergeNativeSegments(options.workingDirectory, totalSegments, (progress) => {
+      reportProgress(options.onProgress, {
+        phase: "merging",
+        completedSegments: totalSegments,
+        totalSegments,
+        mergedBytes: progress.bytes,
+        totalBytes: progress.totalBytes,
+      });
+    });
+    // Preserve inputs until the complete native output has been published.
+    await Promise.all(segmentPaths.map((path) => rm(path, { force: true })));
+  } else {
+    const transport = await open(transportPath, "wx");
+    try {
+      for (const segmentPath of segmentPaths) {
+        const segment = await readFile(segmentPath);
+        await transport.writeFile(segment);
+        bytes += segment.length;
+        await rm(segmentPath, { force: true });
+      }
+    } finally {
+      await transport.close();
     }
-  } finally {
-    await transport.close();
   }
 
   return {

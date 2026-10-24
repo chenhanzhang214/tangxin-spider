@@ -15,6 +15,8 @@ export type HlsPrefetchProgressSnapshot = {
   phase: "playlist" | "segments" | "merging";
   completedSegments: number;
   totalSegments: number;
+  mergedBytes?: number;
+  totalBytes?: number;
 };
 
 export type DownloadTask = {
@@ -70,7 +72,11 @@ export function mapHlsProgressToDownloadProgress(
   if (progress.phase === "merging") {
     return {
       phase: "merging",
-      percent: 88,
+      percent:
+        progress.totalBytes && progress.mergedBytes !== undefined
+          ? 88 +
+            Math.round(Math.max(0, Math.min(1, progress.mergedBytes / progress.totalBytes)) * 2)
+          : 88,
       message: `分片已下载 ${completedSegments}/${totalSegments}，正在合并…`,
       completedSegments,
       totalSegments,

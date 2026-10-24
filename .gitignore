@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+native/build/
+.runtime-downloads/
 
 # Build output and deployment caches
 .output/
@@ -20,6 +22,7 @@ ios/**/DerivedData/
 
 # Local runtime data
 downloads/
+.tangxin-download-dir
 screenshots/
 artifacts/
 *.log

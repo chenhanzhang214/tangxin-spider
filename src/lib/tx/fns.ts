@@ -6,6 +6,43 @@ export const getHome = createServerFn({ method: "GET" }).handler(async () => {
   return fetchHome();
 });
 
+const archiveVideo = z.object({
+  id: z.string().regex(/^\d+$/),
+  title: z.string().max(4000),
+  duration: z.string().max(100),
+  cover: z.string().max(2000),
+  actor: z.string().max(300),
+  actorSlug: z.string().max(300),
+  pageUrl: z.string().max(2000),
+  hls: z.string().max(2000),
+});
+
+export const getArchivePlan = createServerFn({ method: "POST" })
+  .validator((input: unknown) =>
+    z
+      .object({
+        videos: z.array(archiveVideo).max(10000),
+        bundles: z
+          .array(
+            z.object({
+              name: z.string().max(300),
+              slug: z.string().max(300),
+              listed: z.number(),
+              videos: z.array(archiveVideo).max(10000),
+            }),
+          )
+          .max(2000),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { desktopWorkerEnabled, runPython } = await import("./worker.server.ts");
+    const { planArchiveItems } = await import("./archive-utils.ts");
+    return desktopWorkerEnabled()
+      ? runPython<ReturnType<typeof planArchiveItems>>("archive", data)
+      : planArchiveItems(data.videos, data.bundles);
+  });
+
 export const getActors = createServerFn({ method: "GET" }).handler(async () => {
   const { fetchActors } = await import("./crawl.server");
   return fetchActors();
