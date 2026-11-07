@@ -1,3 +1,5 @@
+import { fetchRxrinaSearch } from "./rxrina.server.ts";
+import { resolveRequestedSiteOrigin, siteProfileForOrigin } from "./site-origin.ts";
 import { coverUrl, hlsUrl, SITE_ORIGIN, type SearchVideosResult, type VideoCard } from "./types.ts";
 
 const PAGEFIND_BASE = `${SITE_ORIGIN}/pagefind/`;
@@ -82,10 +84,18 @@ export function pagefindDataToVideoCard(data: unknown): VideoCard | null {
   };
 }
 
-export async function searchSiteVideos(query: string, limit = 60): Promise<SearchVideosResult> {
+export async function searchSiteVideos(
+  query: string,
+  limit = 60,
+  origin?: string,
+): Promise<SearchVideosResult> {
   const normalized = query.trim();
   if (!normalized) return { query: "", total: 0, videos: [] };
   const safeLimit = Math.max(1, Math.min(MAX_RESULTS, Math.floor(limit)));
+  const resolved = resolveRequestedSiteOrigin(origin, process.env.TX_SITE_ORIGIN);
+  if (siteProfileForOrigin(resolved)?.kind === "rxrina") {
+    return fetchRxrinaSearch(resolved, normalized, safeLimit);
+  }
   const result = await (await loadPagefind()).search(normalized);
   const videos: VideoCard[] = [];
   const seen = new Set<string>();

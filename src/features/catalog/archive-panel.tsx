@@ -14,6 +14,11 @@ import { VideoPreviewDialog } from "@/components/video-preview-dialog";
 import { VideoArtwork } from "./video-item";
 import { getPlaylist } from "@/lib/tx/fns";
 import { downloadTaskKey, summarizeDownloadTasks } from "@/lib/tx/download-progress";
+import {
+  CATALOG_ONLY_MEDIA_MESSAGE,
+  siteProfileForOrigin,
+  videoSupportsLocalMedia,
+} from "@/lib/tx/site-origin";
 import { useCatalog } from "@/lib/tx/store";
 import { formatActorTree } from "@/lib/tx/parse";
 import { sanitizeFilename } from "@/lib/tx/mp4-utils";
@@ -33,6 +38,8 @@ import { DownloadQueuePanel } from "@/features/downloads/download-queue";
 export function ResultPanel() {
   const [previewVideo, setPreviewVideo] = useState<VideoCard | null>(null);
   const bundles = useCatalog((s) => s.bundles);
+  const siteOrigin = useCatalog((s) => s.siteOrigin);
+  const groupNoun = siteProfileForOrigin(siteOrigin)?.groupNoun ?? "演员";
   const setTab = useCatalog((s) => s.setTab);
   const downloadDirectory = useCatalog((s) => s.downloadDirectory);
   const tree = useMemo(() => formatActorTree(bundles, "m3u8"), [bundles]);
@@ -100,10 +107,14 @@ export function ResultPanel() {
   }
 
   async function downloadPlaylist(video: VideoCard, index: number, actor: string) {
+    if (!videoSupportsLocalMedia(video)) {
+      setMessage(CATALOG_ONLY_MEDIA_MESSAGE);
+      return;
+    }
     setBusyId(`playlist:${video.id}`);
     setMessage(null);
     try {
-      const { playlist } = await getPlaylist({ data: { id: video.id } });
+      const { playlist } = await getPlaylist({ data: { id: video.id, origin: siteOrigin } });
       saveBlob(
         playlist,
         `${sanitizeFilename(actor)}-${index}.m3u8`,
@@ -117,6 +128,10 @@ export function ResultPanel() {
   }
 
   async function downloadMp4(video: VideoCard, index: number, actor: string) {
+    if (!videoSupportsLocalMedia(video)) {
+      setMessage(CATALOG_ONLY_MEDIA_MESSAGE);
+      return;
+    }
     if (ffmpeg.status !== "available") {
       setMessage("当前电脑还没有可用的 ffmpeg，请先安装后点击刷新检测。 ");
       return;
@@ -150,6 +165,10 @@ export function ResultPanel() {
   }
 
   async function openCatCatch(video: VideoCard, index: number, actor: string) {
+    if (!videoSupportsLocalMedia(video)) {
+      setMessage(CATALOG_ONLY_MEDIA_MESSAGE);
+      return;
+    }
     const actionId = `catcatch:${video.id}`;
     setBusyId(actionId);
     setMessage(null);
@@ -178,6 +197,10 @@ export function ResultPanel() {
   }
 
   async function downloadAllMp4(tasks: typeof mp4Tasks) {
+    if (tasks.some((task) => !videoSupportsLocalMedia(task.video))) {
+      setMessage(CATALOG_ONLY_MEDIA_MESSAGE);
+      return;
+    }
     if (ffmpeg.status !== "available" || tasks.length === 0 || hasActiveDownloads) return;
     await runMp4Batch({
       items: tasks,
@@ -274,7 +297,11 @@ export function ResultPanel() {
             <Button
               type="button"
               size="sm"
-              disabled={ffmpeg.status !== "available" || hasActiveDownloads}
+              disabled={
+                ffmpeg.status !== "available" ||
+                hasActiveDownloads ||
+                mp4Tasks.some((task) => !videoSupportsLocalMedia(task.video))
+              }
               onClick={() => void downloadAllMp4(mp4Tasks)}
             >
               {hasActiveDownloads ? (
@@ -316,7 +343,9 @@ export function ResultPanel() {
         <section key={bundle.slug} className="rounded-xl border border-line bg-surface p-4">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-display text-xl text-fg">演员: {bundle.name}</h3>
+              <h3 className="font-display text-xl text-fg">
+                {groupNoun}: {bundle.name}
+              </h3>
               <p className="mt-1 font-mono text-xs text-faint">
                 {bundle.videos.length} 条{bundle.listed ? ` / 源站 ${bundle.listed}` : ""}
               </p>
@@ -325,7 +354,11 @@ export function ResultPanel() {
               type="button"
               size="sm"
               variant="subtle"
-              disabled={ffmpeg.status !== "available" || hasActiveDownloads}
+              disabled={
+                ffmpeg.status !== "available" ||
+                hasActiveDownloads ||
+                bundle.videos.some((video) => !videoSupportsLocalMedia(video))
+              }
               onClick={() =>
                 void downloadAllMp4(
                   bundle.videos.map((video, index) => ({
@@ -337,7 +370,7 @@ export function ResultPanel() {
               }
             >
               <PackageOpen className="size-4" />
-              此演员 MP4
+              此{groupNoun} MP4
             </Button>
           </header>
           <ol className="mt-4 flex flex-col">
@@ -369,7 +402,11 @@ export function ResultPanel() {
                     <Button
                       type="button"
                       size="sm"
-                      disabled={busyId === `catcatch:${video.id}` || batchActive}
+                      disabled={
+                        busyId === `catcatch:${video.id}` ||
+                        batchActive ||
+                        !videoSupportsLocalMedia(video)
+                      }
                       onClick={() => void openCatCatch(video, i + 1, bundle.name)}
                       title="调用本机 Chrome 打开猫抓 M3U8 解析器"
                     >
@@ -384,7 +421,12 @@ export function ResultPanel() {
                       type="button"
                       size="sm"
                       variant="subtle"
-                      disabled={ffmpeg.status !== "available" || downloadBusy || batchActive}
+                      disabled={
+                        ffmpeg.status !== "available" ||
+                        downloadBusy ||
+                        batchActive ||
+                        !videoSupportsLocalMedia(video)
+                      }
                       onClick={() => void downloadMp4(video, i + 1, bundle.name)}
                       title="使用本机 ffmpeg 转封装为 MP4"
                     >
@@ -403,7 +445,11 @@ export function ResultPanel() {
                       type="button"
                       size="sm"
                       variant="ghost"
-                      disabled={busyId === `playlist:${video.id}` || batchActive}
+                      disabled={
+                        busyId === `playlist:${video.id}` ||
+                        batchActive ||
+                        !videoSupportsLocalMedia(video)
+                      }
                       onClick={() => void downloadPlaylist(video, i + 1, bundle.name)}
                     >
                       {busyId === `playlist:${video.id}` ? (

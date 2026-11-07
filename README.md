@@ -348,6 +348,7 @@ winget install Gyan.FFmpeg
 | `--delay`     | `0.4`                       | 请求之间的间隔，单位为秒            |
 | `--mp4`       | 关闭                        | 调用 `ffmpeg` 生成 MP4              |
 | `--ext`       | `m3u8`                      | 编号目录文件使用的扩展名            |
+| `--origin`    | `https://tangxinvlog.app`   | 内容源。3drxrina 只导出目录；也可用 `TX_SITE_ORIGIN` |
 
 ## 输出结构
 
@@ -406,6 +407,31 @@ C:\Users\Public\Videos\Tangxin/
 └── vite.config.ts             # Vite、TanStack Start 和 Nitro 配置
 ```
 
+## 内容源
+
+默认内容源仍是 `https://tangxinvlog.app`。不设置时，抓取、预览、HLS 和 MP4 行为与以前相同。
+
+`https://1792682274428z1281480769st1.3drxrina.com` 是另一个公开目录站，不是糖心的备用域名。它的页面是 Vue 应用，目录来自 `/server/web/index` 和 `/server/movie/list`，分组单位是栏目而不是演员。程序只读取公开目录，不请求站点的 `videoAuth` 播放接口，也不保存媒体文件。
+
+在“设置 → 内容源”中选择“3drxrina 目录站”，点击“保存并重新加载”。选择保存在本机浏览器存储，优先于下面的环境变量。也可以在启动前指定：
+
+```bat
+set TX_SITE_ORIGIN=https://1792682274428z1281480769st1.3drxrina.com
+```
+
+```bash
+TX_SITE_ORIGIN=https://1792682274428z1281480769st1.3drxrina.com npm run dev
+```
+
+独立 Python 脚本使用同一个变量或 `--origin`。该站点只写出 `catalog.txt`、`catalog.json` 和栏目 `manifest.json`，不能加 `--mp4`。脚本需要已安装 `cryptography`：
+
+```bash
+pip install cryptography
+python tangxin_crawl.py --origin https://1792682274428z1281480769st1.3drxrina.com --top 1 --max-pages 1
+```
+
+封面地址会按站点公开配置把 `COVER_RES` 换成图片域名。部分封面是加密资源，页面里可能无法直接显示。搜索结果按栏目 value 归档。播放、猫抓和 MP4 按钮会保持关闭。
+
 ## 数据流与媒体约定
 
 网页端通过服务端函数读取源站 HTML，再在本地解析目录数据，避免把跨域抓取逻辑直接放在浏览器中。关键地址规则集中定义在 `src/lib/tx/types.ts`：
@@ -424,6 +450,8 @@ HLS 播放列表   https://t.5gcdn.xyz/videos/{id}/index.m3u8
 - `src/lib/tx/parse.ts`
 - `src/lib/tx/crawl.server.ts`
 - `src/lib/tx/types.ts`
+- `src/lib/tx/site-origin.ts`
+- `src/lib/tx/rxrina-catalog.ts`
 - `public/tangxin_crawl.py`
 
 ## 常用开发命令

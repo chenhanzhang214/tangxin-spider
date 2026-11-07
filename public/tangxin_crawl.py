@@ -22,7 +22,7 @@
 
 默认只落盘「改写过绝对地址的 m3u8 播放列表」，按演员编号：
 
-  C:\Users\Public\Videos\Tangxin/
+  C:\\Users\\Public\\Videos\\Tangxin/
     桥本香菜/
       1.m3u8
       2.m3u8
@@ -32,12 +32,19 @@
 若本机有 ffmpeg，加 --mp4 会把 HLS 转封装为可播放的标题.mp4（不重编码），
 先写入临时文件，转换成功后再替换最终文件。
 后缀想跟「1.mpt」命名的话，传 --ext mpt。
+
+另支持公开目录站 https://1792682274428z1281480769st1.3drxrina.com。
+用 --origin 或环境变量 TX_SITE_ORIGIN 选择它时，只导出栏目目录，
+不请求 videoAuth，也不生成 m3u8 / mp4。需要已安装 cryptography。
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import os
+import urllib.error
 import re
 import subprocess
 import sys
@@ -49,7 +56,12 @@ import uuid
 from pathlib import Path
 
 ORIGIN = "https://tangxinvlog.app"
+RXRINA_ORIGIN = "https://1792682274428z1281480769st1.3drxrina.com"
 CDN = "https://t.5gcdn.xyz"
+RXRINA_PAGE_SIZE = 24
+# Public catalog responses use the same wrapper as the anonymous web page.
+RXRINA_RESPONSE_KEY = b"C6DvClCIsrp6t5cMQRlLAxJItxt5H7WT"
+RXRINA_RESPONSE_IV = b"VLMQmNqzTnq18DjXwap3HSFrW76uIHoU"
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -255,8 +267,286 @@ def maybe_ffmpeg(m3u8: Path, mp4: Path) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def canonical_origin(value: str) -> str | None:
+    raw = (value or "").strip()
+    if not raw:
+        return ORIGIN
+    parsed = urllib.parse.urlparse(raw)
+    if parsed.scheme != "https" or parsed.username or parsed.password or parsed.query or parsed.fragment:
+        return None
+    if parsed.path not in ("", "/"):
+        return None
+    origin = f"https://{parsed.hostname}" if parsed.hostname else ""
+    if origin in (ORIGIN, RXRINA_ORIGIN):
+        return origin
+    return None
+
+
+def decrypt_rxrina_payload(encoded: str) -> dict:
+    try:
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    except ImportError as exc:
+        raise RuntimeError(
+            "该内容源的目录响应使用站点公开页面的 AES 封装。请先执行 pip install cryptography，或改用程序设置中的内容源。"
+        ) from exc
+    cipher = Cipher(algorithms.AES(RXRINA_RESPONSE_KEY), modes.CBC(RXRINA_RESPONSE_IV[:16]))
+    decryptor = cipher.decryptor()
+    raw = base64.b64decode(encoded)
+    padded = decryptor.update(raw) + decryptor.finalize()
+    pad = padded[-1]
+    if pad < 1 or pad > 16 or padded[-pad:] != bytes([pad]) * pad:
+        raise RuntimeError("内容源目录无法解析")
+    payload = json.loads(padded[:-pad].decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError("内容源目录无法解析")
+    return payload
+
+
+def format_rxrina_duration(value: object) -> str:
+    if isinstance(value, str) and ":" in value:
+        return value.strip()
+    if isinstance(value, str) and value.isdigit():
+        raw = int(value)
+    elif isinstance(value, int):
+        raw = value
+    else:
+        return ""
+    seconds = round(raw / 1000) if raw >= 1000 else raw
+    hours, remainder = divmod(max(0, seconds), 3600)
+    minutes, secs = divmod(remainder, 60)
+    clock = f"{minutes:02d}:{secs:02d}"
+    return f"{hours}:{clock}" if hours else f"{minutes}:{secs:02d}"
+
+
+def rxrina_cover(poster: str, config: dict) -> str:
+    value = poster or ""
+    name_cdn = str(config.get("bufnamecdn") or "")
+    image_cdn = str(config.get("resimgcdn") or "")
+    domain_cdn = str(config.get("bufdomaincdn") or "")
+    image_domain = str(config.get("resimgdomaincdn") or "")
+    if name_cdn and image_cdn:
+        value = value.replace(name_cdn, image_cdn)
+    if domain_cdn and image_domain:
+        value = value.replace(domain_cdn, image_domain)
+    if value.startswith("//"):
+        return "https:" + value
+    return value
+
+
+def map_rxrina_row(row: dict, origin: str, column_name: str, config: dict) -> dict | None:
+    videos = row.get("movieVideos") if isinstance(row.get("movieVideos"), list) else []
+    first = videos[0] if videos and isinstance(videos[0], dict) else {}
+    identifier = first.get("id", row.get("id"))
+    if not isinstance(identifier, int) or identifier < 0:
+        if not (isinstance(identifier, str) and identifier.isdigit()):
+            return None
+    video_id = str(identifier)
+    column = str(row.get("columnValue") or "").strip()
+    if not column:
+        return None
+    page = urllib.parse.urljoin(
+        origin + "/",
+        f"column/{urllib.parse.quote(column)}/video/{urllib.parse.quote(video_id)}",
+    )
+    return {
+        "id": video_id,
+        "title": str(row.get("title") or f"视频 {video_id}"),
+        "duration": format_rxrina_duration(row.get("duration")),
+        "cover": rxrina_cover(str(row.get("poster") or ""), config),
+        "actor": column_name or column,
+        "actorSlug": column,
+        "pageUrl": page,
+        "hls": "",
+    }
+
+
+class _RejectRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
+        raise RuntimeError("内容源拒绝跳转到其他地址")
+
+
+def rxrina_fetch(origin: str, path: str) -> dict | str:
+    url = urllib.parse.urljoin(origin + "/", path.lstrip("/"))
+    parsed = urllib.parse.urlparse(url)
+    if f"{parsed.scheme}://{parsed.hostname}" != origin:
+        raise RuntimeError("内容源地址无效")
+    token = os.urandom(32).hex()
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": UA,
+            "Accept": "*/*" if path.endswith(".js") else "application/json",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.6",
+            "Referer": origin + "/",
+            "authwebtoken": token,
+            "X-Site-Id": parsed.hostname or "",
+            "version": "1",
+        },
+    )
+    opener = urllib.request.build_opener(_RejectRedirect)
+    try:
+        with opener.open(request, timeout=18) as response:
+            body = response.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"请求失败 {exc.code} {parsed.path}") from exc
+    if path.endswith(".js"):
+        return body
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("内容源返回了无法识别的目录") from exc
+    if isinstance(payload, dict) and isinstance(payload.get("x-data"), str):
+        payload = decrypt_rxrina_payload(payload["x-data"])
+    if not isinstance(payload, dict):
+        raise RuntimeError("内容源返回了无法识别的目录")
+    code = payload.get("code")
+    if code == 401:
+        raise RuntimeError("内容源要求登录，已停止，不会尝试绕过访问控制。")
+    if isinstance(code, int) and code != 200:
+        message = payload.get("msg")
+        raise RuntimeError(message if isinstance(message, str) and message else f"内容源返回错误 {code}")
+    return payload
+
+
+def parse_rxrina_config(source: str) -> dict:
+    marker = source.find("window.__SITE_CONFIG__")
+    start = source.find("{", marker if marker >= 0 else 0)
+    if marker < 0 or start < 0:
+        raise RuntimeError("内容源配置缺少站点参数")
+    depth = 0
+    in_string = False
+    escaped = False
+    end = None
+    for index, char in enumerate(source[start:], start):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                end = index + 1
+                break
+    if end is None:
+        raise RuntimeError("内容源配置缺少站点参数")
+    payload = json.loads(source[start:end])
+    if not isinstance(payload, dict):
+        raise RuntimeError("内容源配置无法识别")
+    return payload
+
+
+def crawl_rxrina(args: argparse.Namespace, origin: str) -> int:
+    if args.mp4:
+        print(
+            "该内容源不支持 --mp4：播放地址受 videoAuth 控制，脚本不会请求媒体。",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        config_source = rxrina_fetch(origin, "/server/web/site/config.js")
+        if not isinstance(config_source, str):
+            raise RuntimeError("内容源配置缺少站点参数")
+        config = parse_rxrina_config(config_source)
+        home = rxrina_fetch(origin, "/server/web/index")
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    if not isinstance(home, dict):
+        print("内容源返回了无法识别的目录", file=sys.stderr)
+        return 2
+    query_data = ((home.get("data") or {}) if isinstance(home.get("data"), dict) else {}).get("queryData")
+    roster: list[dict[str, str]] = []
+    if isinstance(query_data, list):
+        for entry in query_data:
+            if not isinstance(entry, dict):
+                continue
+            slug = str(entry.get("value") or "").strip()
+            name = str(entry.get("name") or "").strip()
+            if slug and name:
+                roster.append({"slug": slug, "name": name})
+    wanted = args.actors if args.actors else [item["slug"] for item in roster[: max(1, args.top)]]
+    names = {item["slug"]: item["name"] for item in roster}
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    bundles: list[tuple[str, list[dict]]] = []
+    catalog: dict[str, list[dict]] = {}
+    try:
+        for slug in wanted:
+            name = names.get(slug, slug)
+            print(f"爬取栏目 {name}", flush=True)
+            videos: list[dict] = []
+            seen: set[str] = set()
+            page = 1
+            while page <= args.max_pages:
+                query = urllib.parse.urlencode(
+                    {
+                        "columnValue": slug,
+                        "pageNum": page,
+                        "pageSize": RXRINA_PAGE_SIZE,
+                    }
+                )
+                payload = rxrina_fetch(origin, f"/server/movie/list?{query}")
+                if not isinstance(payload, dict):
+                    break
+                rows = payload.get("rows") if isinstance(payload.get("rows"), list) else []
+                added = 0
+                for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+                    video = map_rxrina_row(row, origin, name, config)
+                    if not video or video["id"] in seen:
+                        continue
+                    seen.add(video["id"])
+                    videos.append(video)
+                    added += 1
+                total = payload.get("total") if isinstance(payload.get("total"), int) else 0
+                print(f"  [{name}] p{page} +{added}  累计 {len(videos)}/{total or '?'}", flush=True)
+                if added == 0 or page * RXRINA_PAGE_SIZE >= total:
+                    break
+                page += 1
+                time.sleep(args.delay)
+            folder = out / safe_filename(name, "未分类栏目")
+            folder.mkdir(parents=True, exist_ok=True)
+            (folder / "manifest.json").write_text(
+                json.dumps(
+                    {"column": name, "slug": slug, "media": "unsupported", "videos": videos},
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            bundles.append((name, videos))
+            catalog[name] = videos
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    lines: list[str] = []
+    for name, videos in bundles:
+        lines.append(f"栏目: {name}")
+        for video in videos:
+            lines.append(f"      {video['duration']:<8} {video['title']}")
+        if not videos:
+            lines.append("      (空)")
+        lines.append("")
+    tree = "\n".join(lines)
+    (out / "catalog.txt").write_text(tree, encoding="utf-8")
+    (out / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=2), encoding="utf-8")
+    print("\n===== 目录结果（未下载媒体） =====\n")
+    print(tree)
+    print(f"已写入 {out.resolve()}", flush=True)
+    return 0
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="按演员爬取 tangxinvlog.app 视频目录")
+    parser = argparse.ArgumentParser(description="按演员爬取 tangxinvlog.app 视频目录，或导出 3drxrina 公开目录")
     parser.add_argument(
         "--out",
         default=str(DEFAULT_OUTPUT_DIR),
@@ -268,7 +558,18 @@ def main() -> int:
     parser.add_argument("--delay", type=float, default=0.4, help="请求间隔秒")
     parser.add_argument("--mp4", action="store_true", help="调用 ffmpeg 转封装为 mp4")
     parser.add_argument("--ext", default="m3u8", help="编号文件后缀，默认 m3u8；可改成 mpt/mp4")
+    parser.add_argument(
+        "--origin",
+        default=os.environ.get("TX_SITE_ORIGIN", ORIGIN),
+        help="内容源。默认 tangxinvlog.app；3drxrina 目录站只导出目录",
+    )
     args = parser.parse_args()
+    origin = canonical_origin(args.origin)
+    if origin is None:
+        print("不支持的内容源。只接受糖心 Vlog 或已配置的 3drxrina 目录站。", file=sys.stderr)
+        return 2
+    if origin == RXRINA_ORIGIN:
+        return crawl_rxrina(args, origin)
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
