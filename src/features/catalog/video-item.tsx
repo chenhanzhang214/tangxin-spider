@@ -2,6 +2,7 @@ import { Film, Play } from "lucide-react";
 import { useState } from "react";
 import type { VideoCard } from "@/lib/tx/types";
 import { videoPreviewUrl } from "@/lib/tx/preview";
+import { videoSupportsLocalMedia } from "@/lib/tx/site-origin";
 import { cn } from "@/lib/utils";
 
 export function VideoArtwork({
@@ -13,7 +14,9 @@ export function VideoArtwork({
   onPreview: (video: VideoCard) => void;
   compact?: boolean;
 }) {
-  const [failed, setFailed] = useState(false);
+  const localMedia = videoSupportsLocalMedia(video);
+  const src = localMedia ? videoPreviewUrl(video.id, "cover.jpg") : video.cover;
+  const [failed, setFailed] = useState(!src);
   return (
     <button
       type="button"
@@ -31,10 +34,11 @@ export function VideoArtwork({
         </span>
       ) : (
         <img
-          src={videoPreviewUrl(video.id, "cover.jpg")}
+          src={src}
           alt=""
           loading="lazy"
           decoding="async"
+          referrerPolicy={localMedia ? undefined : "no-referrer"}
           onError={() => setFailed(true)}
           className="size-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
         />

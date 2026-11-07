@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getActorPage } from "@/lib/tx/fns";
 import { mergeVideos, useCatalog } from "@/lib/tx/store";
+import { siteProfileForOrigin } from "@/lib/tx/site-origin";
 import { PAGE_SIZE, type VideoCard } from "@/lib/tx/types";
 import { SectionTitle } from "@/features/workspace/presentation";
 import { wait } from "@/features/workspace/helpers";
@@ -26,6 +27,8 @@ export function CrawlPanel() {
   const resetBundles = useCatalog((s) => s.resetBundles);
   const setTab = useCatalog((s) => s.setTab);
   const bundles = useCatalog((s) => s.bundles);
+  const siteOrigin = useCatalog((s) => s.siteOrigin);
+  const groupNoun = siteProfileForOrigin(siteOrigin)?.groupNoun ?? "演员";
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -39,7 +42,11 @@ export function CrawlPanel() {
     if (crawling || selected.length === 0) return;
     setCrawling(true);
     resetBundles();
-    log(`开始爬取 ${selected.length} 位演员，每位最多 ${maxPages} 页`);
+    log(
+      groupNoun === "栏目"
+        ? `开始爬取 ${selected.length} 个栏目，每个最多 ${maxPages} 页`
+        : `开始爬取 ${selected.length} 位演员，每位最多 ${maxPages} 页`,
+    );
     try {
       for (const slug of selected) {
         const meta = actors.find((a) => a.slug === slug);
@@ -47,7 +54,7 @@ export function CrawlPanel() {
         let listed = meta?.count ?? 0;
         let videos: VideoCard[] = [];
         for (let page = 1; page <= maxPages; page += 1) {
-          const res = await getActorPage({ data: { slug, page } });
+          const res = await getActorPage({ data: { slug, page, origin: siteOrigin } });
           name = res.name || name;
           listed = res.total || listed;
           videos = mergeVideos(videos, res.videos);
@@ -71,9 +78,14 @@ export function CrawlPanel() {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div>
-        <SectionTitle kicker="爬取" title="按演员分页抓取" />
+        <SectionTitle
+          kicker="爬取"
+          title={groupNoun === "栏目" ? "按栏目分页抓取" : "按演员分页抓取"}
+        />
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          选择演员与读取页数，整理他们的作品；完成后可前往归档预览或下载。
+          {groupNoun === "栏目"
+            ? "选择栏目与读取页数，整理公开目录；这个内容源不会请求播放地址。"
+            : "选择演员与读取页数，整理他们的作品；完成后可前往归档预览或下载。"}
         </p>
         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           <label className="relative flex-1">
@@ -81,7 +93,7 @@ export function CrawlPanel() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="筛选演员名"
+              placeholder={groupNoun === "栏目" ? "筛选栏目名" : "筛选演员名"}
               className="h-11 w-full rounded-md border border-line bg-surface pr-3 pl-10 text-sm text-fg outline-none placeholder:text-faint focus:ring-2 focus:ring-accent/40"
             />
           </label>
@@ -170,7 +182,11 @@ export function CrawlPanel() {
           aria-live="polite"
           className="mt-4 flex max-h-96 flex-col gap-3 overflow-auto text-xs leading-relaxed text-muted"
         >
-          {logs.length === 0 && <p className="py-8 text-center">选择演员后，开始整理作品。</p>}
+          {logs.length === 0 && (
+            <p className="py-8 text-center">
+              {groupNoun === "栏目" ? "选择栏目后，开始整理作品。" : "选择演员后，开始整理作品。"}
+            </p>
+          )}
           {logs.map((line) => (
             <p key={line.t + line.msg}>{line.msg}</p>
           ))}

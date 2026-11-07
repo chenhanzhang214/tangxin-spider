@@ -6,6 +6,7 @@ import {
   type DownloadTaskUpdate,
 } from "./download-progress";
 import { DEFAULT_DOWNLOAD_DIRECTORY } from "./download-settings";
+import { SITE_ORIGIN } from "./types";
 import { mergeArchiveItemsIntoBundles, type ArchiveItem } from "./archive-utils";
 import type { ActorBundle, HomeData, NamedCount, VideoCard } from "./types";
 
@@ -44,6 +45,8 @@ type CatalogState = {
   clearFinishedDownloads: () => void;
   downloadDirectory: string;
   setDownloadDirectory: (directory: string) => void;
+  siteOrigin: string;
+  setSiteOrigin: (origin: string) => void;
 };
 
 export const useCatalog = create<CatalogState>((set, get) => ({
@@ -111,6 +114,8 @@ export const useCatalog = create<CatalogState>((set, get) => ({
     set({ downloadTasks: removeFinishedDownloadTasks(get().downloadTasks) }),
   downloadDirectory: DEFAULT_DOWNLOAD_DIRECTORY,
   setDownloadDirectory: (directory) => set({ downloadDirectory: directory }),
+  siteOrigin: SITE_ORIGIN,
+  setSiteOrigin: (origin) => set({ siteOrigin: origin }),
 }));
 
 export function mergeVideos(existing: VideoCard[], incoming: VideoCard[]) {

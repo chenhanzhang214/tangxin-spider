@@ -28,13 +28,17 @@ import { MediaPanel } from "@/features/catalog/media-panel";
 import { SettingsPanel } from "@/features/settings/settings-panel";
 import { AboutPanel } from "@/features/settings/about-panel";
 import { ScriptPanel } from "@/features/settings/tools-panel";
+import { loadSiteCatalog } from "@/lib/tx/load-catalog";
+import { loadStoredSiteOrigin } from "@/lib/tx/site-origin";
 import type { HomeData, NamedCount } from "@/lib/tx/types";
+import { SITE_ORIGIN } from "@/lib/tx/types";
 import { APP_VERSION } from "@/lib/version";
 
 export type WorkspaceData = {
   home: HomeData | null;
   actors: NamedCount[];
   tags: NamedCount[];
+  origin: string;
   error: string | null;
 };
 const TABS: { id: TabId; label: string; description: string; icon: LucideIcon }[] = [
@@ -52,6 +56,7 @@ export function Home({ data }: { data: WorkspaceData }) {
   const tab = useCatalog((s) => s.tab);
   const setTab = useCatalog((s) => s.setTab);
   const hydrateMeta = useCatalog((s) => s.hydrateMeta);
+  const setSiteOrigin = useCatalog((s) => s.setSiteOrigin);
   const setDownloadDirectory = useCatalog((s) => s.setDownloadDirectory);
   const home = useCatalog((s) => s.home);
   const actors = useCatalog((s) => s.actors);
@@ -67,6 +72,21 @@ export function Home({ data }: { data: WorkspaceData }) {
   useEffect(() => {
     if (data.home) hydrateMeta(data.home, data.actors, data.tags);
   }, [data, hydrateMeta]);
+  useEffect(() => {
+    const stored = loadStoredSiteOrigin();
+    const active = stored ?? data.origin ?? SITE_ORIGIN;
+    setSiteOrigin(active);
+    if (!stored || stored === data.origin) return;
+    let cancelled = false;
+    loadSiteCatalog(stored)
+      .then((catalog) => {
+        if (!cancelled) hydrateMeta(catalog.home, catalog.actors, catalog.tags);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [data, hydrateMeta, setSiteOrigin]);
   useEffect(() => {
     setDownloadDirectory(loadDownloadDirectory());
     fetch("/api/files?dir=1")

@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { getTagPage, searchVideos } from "@/lib/tx/fns";
 import { getArchivePlan } from "@/lib/tx/fns";
 import { summarizeDownloadTasks } from "@/lib/tx/download-progress";
+import { CATALOG_ONLY_MEDIA_MESSAGE, videoSupportsLocalMedia } from "@/lib/tx/site-origin";
 import { mergeVideos, useCatalog } from "@/lib/tx/store";
 import { PAGE_SIZE, type NamedCount, type VideoCard } from "@/lib/tx/types";
 import { SectionTitle } from "@/features/workspace/presentation";
@@ -32,6 +33,7 @@ import { DownloadQueuePanel } from "@/features/downloads/download-queue";
 
 export function DiscoveryPanel() {
   const tags = useCatalog((s) => s.tags);
+  const siteOrigin = useCatalog((s) => s.siteOrigin);
   const bundles = useCatalog((s) => s.bundles);
   const addArchiveItems = useCatalog((s) => s.addArchiveItems);
   const downloadDirectory = useCatalog((s) => s.downloadDirectory);
@@ -114,7 +116,7 @@ export function DiscoveryPanel() {
       let videos: VideoCard[] = [];
       const pages = Math.max(1, Math.min(20, tagPages));
       for (let page = 1; page <= pages; page += 1) {
-        const result = await getTagPage({ data: { slug: selectedTag.slug, page } });
+        const result = await getTagPage({ data: { slug: selectedTag.slug, page, origin: siteOrigin } });
         name = result.name || name;
         total = result.total || total;
         videos = mergeVideos(videos, result.videos);
@@ -142,7 +144,7 @@ export function DiscoveryPanel() {
     setSelectedSearchIds([]);
     try {
       const result = await searchVideos({
-        data: { query, limit: Math.max(1, Math.min(100, searchLimit)) },
+        data: { query, limit: Math.max(1, Math.min(100, searchLimit)), origin: siteOrigin },
       });
       setSearchTotal(result.total);
       setSearchItems(result.videos);
@@ -165,16 +167,17 @@ export function DiscoveryPanel() {
   }
 
   async function archiveAndDownload(source: "tag" | "search") {
-    if (ffmpeg.status !== "available") {
-      setMessage("当前电脑还没有可用的 ffmpeg，请先安装后点击刷新检测。");
-      return;
-    }
     if (hasActiveDownloads || archiveBusy) return;
     const videos = source === "tag" ? tagVideos : searchItems;
     const selectedIds = source === "tag" ? selectedTagIds : selectedSearchIds;
     const selectedVideos = videos.filter((video) => selectedIds.includes(video.id));
     if (selectedVideos.length === 0) {
       setMessage("请先在结果列表中至少勾选一个作品。");
+      return;
+    }
+    const catalogOnly = selectedVideos.some((video) => !videoSupportsLocalMedia(video));
+    if (!catalogOnly && ffmpeg.status !== "available") {
+      setMessage("当前电脑还没有可用的 ffmpeg，请先安装后点击刷新检测。");
       return;
     }
     const targetDirectory = downloadDirectory;
@@ -185,6 +188,10 @@ export function DiscoveryPanel() {
     try {
       const items = await getArchivePlan({ data: { videos: selectedVideos, bundles } });
       addArchiveItems(items);
+      if (catalogOnly) {
+        setMessage(`${label}已加入归档。${CATALOG_ONLY_MEDIA_MESSAGE}`);
+        return;
+      }
       await runMp4Batch({
         items,
         targetDirectory,

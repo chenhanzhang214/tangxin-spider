@@ -6,6 +6,14 @@ v0.2.0–v0.3.4 于 2026-10-01 统一归档至 [GitHub Releases](https://github.
 
 > 使用所有版本均需搭配中国大陆以外的网络环境，并遵守所在地法律法规、相关服务条款、版权和隐私要求。
 
+## 未发布
+
+### 新增
+
+- 支持把 `https://1792682274428z1281480769st1.3drxrina.com` 作为第二个公开目录源。它不是糖心的备用域名。
+- 可在“设置 → 内容源”或环境变量 `TX_SITE_ORIGIN` 中切换。默认仍是 `tangxinvlog.app`。
+- 该目录源只整理栏目、标签和搜索结果，不请求 `videoAuth`，也不保存媒体文件。
+
 ## [0.5.3](https://github.com/chenhanzhang214/tangxin-spider/releases/tag/v0.5.3) — 2026-10-24
 
 ### 修复

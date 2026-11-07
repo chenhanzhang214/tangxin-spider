@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type Hls from "hls.js";
 import { Button } from "@/components/ui/button";
 import { videoPreviewUrl } from "@/lib/tx/preview";
+import { CATALOG_ONLY_MEDIA_MESSAGE, videoSupportsLocalMedia } from "@/lib/tx/site-origin";
 import type { VideoCard } from "@/lib/tx/types";
 
 export function VideoPreviewDialog({
@@ -58,7 +59,9 @@ export function VideoPreviewDialog({
               </header>
               <PreviewPlayer key={video.id} video={video} />
               <p className="shrink-0 border-t border-line px-4 py-3 text-xs leading-relaxed text-muted">
-                预览不会保存 MP4。确认内容后，关闭预览并勾选作品归档下载。
+                {videoSupportsLocalMedia(video)
+                  ? "预览不会保存 MP4。确认内容后，关闭预览并勾选作品归档下载。"
+                  : CATALOG_ONLY_MEDIA_MESSAGE}
               </p>
             </>
           )}
@@ -69,6 +72,25 @@ export function VideoPreviewDialog({
 }
 
 function PreviewPlayer({ video }: { video: VideoCard }) {
+  if (!videoSupportsLocalMedia(video)) {
+    return (
+      <div className="flex flex-col items-center gap-4 bg-player px-6 py-10 text-center text-player-fg">
+        {video.cover ? (
+          <img
+            src={video.cover}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="max-h-72 w-full rounded-md object-contain"
+          />
+        ) : null}
+        <p className="max-w-xl text-sm leading-relaxed">{CATALOG_ONLY_MEDIA_MESSAGE}</p>
+      </div>
+    );
+  }
+  return <LocalPreviewPlayer video={video} />;
+}
+
+function LocalPreviewPlayer({ video }: { video: VideoCard }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");

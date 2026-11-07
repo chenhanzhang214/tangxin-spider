@@ -51,7 +51,7 @@ export function ScriptPanel() {
           {
             n: "3",
             t: "需要时再下载脚本",
-            d: "点右上“下载脚本”获取 Python CLI，适合批量运行、定时运行或指定本地输出目录。",
+            d: "点右上“下载脚本”获取 Python CLI。糖心 Vlog 仍可批量抓取；3drxrina 目录站用 --origin 只导出目录，不下载媒体，且需要本机已安装 Python 包 cryptography。",
           },
           {
             n: "4",
@@ -72,7 +72,8 @@ export function ScriptPanel() {
         <p className="font-mono text-xs tracking-widest text-faint uppercase">命令</p>
         <pre className="mt-3 overflow-auto font-mono text-xs leading-6 text-fg whitespace-pre-wrap">
           {`python tangxin_crawl.py --actors 饼干姐姐 --max-pages 1 --mp4
-python tangxin_crawl.py --top 3 --max-pages 2 --mp4 --out D:\\tx-out`}
+python tangxin_crawl.py --top 3 --max-pages 2 --mp4 --out D:\\tx-out
+python tangxin_crawl.py --origin https://1792682274428z1281480769st1.3drxrina.com --top 1 --max-pages 1`}
         </pre>
       </div>
 

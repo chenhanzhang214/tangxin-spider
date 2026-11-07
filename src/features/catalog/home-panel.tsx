@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { VideoPreviewDialog } from "@/components/video-preview-dialog";
 import { getArchivePlan } from "@/lib/tx/fns";
+import { siteProfileForOrigin } from "@/lib/tx/site-origin";
 import { useCatalog } from "@/lib/tx/store";
 import type { HomeData, NamedCount, VideoCard } from "@/lib/tx/types";
 import { EmptyState } from "@/features/workspace/presentation";
@@ -18,6 +19,8 @@ export function StructurePanel({
   tags: NamedCount[];
 }) {
   const bundles = useCatalog((s) => s.bundles);
+  const siteOrigin = useCatalog((s) => s.siteOrigin);
+  const groupNoun = siteProfileForOrigin(siteOrigin)?.groupNoun ?? "演员";
   const addArchiveItems = useCatalog((s) => s.addArchiveItems);
   const setTab = useCatalog((s) => s.setTab);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -71,7 +74,7 @@ export function StructurePanel({
       setSelectedIds([]);
       setMessage(
         added
-          ? `已加入 ${added} 部作品，并按演员整理到归档。`
+          ? `已加入 ${added} 部作品，并按${groupNoun}整理到归档。`
           : "所选作品已在归档中，无需重复添加。",
       );
     } catch (error) {
@@ -99,7 +102,7 @@ export function StructurePanel({
             </span>
             <span>
               <strong className="mr-1.5 font-mono font-medium text-fg">{actors.length}</strong>
-              位演员
+              {groupNoun === "栏目" ? "个栏目" : "位演员"}
             </span>
             <span>
               <strong className="mr-1.5 font-mono font-medium text-fg">{tags.length}</strong>个标签

@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   FolderOpen,
   FolderTree,
+  Globe,
   HardDrive,
   Loader2,
   RotateCcw,
@@ -13,7 +14,15 @@ import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { loadSiteCatalog } from "@/lib/tx/load-catalog";
+import {
+  SITE_PROFILES,
+  loadStoredSiteOrigin,
+  persistSiteOrigin,
+  siteProfileForOrigin,
+} from "@/lib/tx/site-origin";
 import { useCatalog } from "@/lib/tx/store";
+import { SITE_ORIGIN } from "@/lib/tx/types";
 import {
   DEFAULT_DOWNLOAD_DIRECTORY,
   isValidDownloadDirectory,
@@ -27,12 +36,23 @@ import { isDownloadTaskActive } from "@/features/downloads/batch";
 export function SettingsPanel() {
   const directory = useCatalog((s) => s.downloadDirectory);
   const setDownloadDirectory = useCatalog((s) => s.setDownloadDirectory);
+  const siteOrigin = useCatalog((s) => s.siteOrigin);
+  const setSiteOrigin = useCatalog((s) => s.setSiteOrigin);
+  const hydrateMeta = useCatalog((s) => s.hydrateMeta);
+  const resetBundles = useCatalog((s) => s.resetBundles);
+  const clearSelected = useCatalog((s) => s.clearSelected);
+  const clearLogs = useCatalog((s) => s.clearLogs);
   const downloadTasks = useCatalog((s) => s.downloadTasks);
   const activeDownloads = downloadTasks.filter(isDownloadTaskActive).length;
   const [draft, setDraft] = useState(directory);
   const [feedback, setFeedback] = useState<{ message: string; error?: boolean } | null>(null);
   const [canChooseDirectory, setCanChooseDirectory] = useState(false);
   const [choosingDirectory, setChoosingDirectory] = useState(false);
+  const [originDraft, setOriginDraft] = useState(siteOrigin);
+  const [originFeedback, setOriginFeedback] = useState<{ message: string; error?: boolean } | null>(
+    null,
+  );
+  const [savingOrigin, setSavingOrigin] = useState(false);
 
   useEffect(() => {
     setCanChooseDirectory(Boolean(window.tangxinDesktop?.selectDownloadDirectory));
@@ -50,6 +70,40 @@ export function SettingsPanel() {
   useEffect(() => {
     setDraft(directory);
   }, [directory]);
+
+  useEffect(() => {
+    setOriginDraft(loadStoredSiteOrigin() ?? siteOrigin);
+  }, [siteOrigin]);
+
+  async function saveOrigin() {
+    const profile = siteProfileForOrigin(originDraft);
+    if (!profile) {
+      setOriginFeedback({ message: "请选择支持的内容源。", error: true });
+      return;
+    }
+    setSavingOrigin(true);
+    setOriginFeedback(null);
+    try {
+      const catalog = await loadSiteCatalog(profile.origin);
+      if (!persistSiteOrigin(profile.origin)) {
+        setOriginFeedback({ message: "内容源保存失败，请检查本机存储权限。", error: true });
+        return;
+      }
+      setSiteOrigin(profile.origin);
+      resetBundles();
+      clearSelected();
+      clearLogs();
+      hydrateMeta(catalog.home, catalog.actors, catalog.tags);
+      setOriginFeedback({ message: "内容源已切换，目录已重新加载。之前的归档选择已清空。" });
+    } catch (error) {
+      setOriginFeedback({
+        message: error instanceof Error ? error.message : "内容源加载失败",
+        error: true,
+      });
+    } finally {
+      setSavingOrigin(false);
+    }
+  }
 
   async function saveDirectory(nextValue = draft) {
     const normalized = normalizeDownloadDirectory(nextValue);
@@ -199,6 +253,64 @@ export function SettingsPanel() {
             role="status"
           >
             {feedback.message}
+          </p>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-line bg-surface p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-elevated text-accent">
+            <Globe className="size-5" />
+          </div>
+          <div>
+            <h3 className="font-display text-xl text-fg">内容源</h3>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">
+              默认仍是糖心 Vlog。3drxrina 是另一个公开目录站，只读取栏目、标签和搜索结果，不请求播放接口，也不保存视频文件。
+            </p>
+          </div>
+        </div>
+        <label className="mt-7 block" htmlFor="site-origin">
+          <span className="text-sm text-fg">当前站点</span>
+          <span className="mt-1 block text-xs leading-relaxed text-muted">
+            本机选择保存在浏览器存储中，优先于启动环境变量 TX_SITE_ORIGIN。未保存时使用环境变量，否则使用糖心 Vlog。
+          </span>
+        </label>
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+          <select
+            id="site-origin"
+            value={originDraft}
+            onChange={(event) => setOriginDraft(event.target.value)}
+            className="h-11 min-w-0 flex-1 rounded-md border border-line bg-elevated px-3 text-sm text-fg outline-none focus:ring-2 focus:ring-accent/40"
+          >
+            {SITE_PROFILES.map((profile) => (
+              <option key={profile.origin} value={profile.origin}>
+                {profile.label}
+              </option>
+            ))}
+          </select>
+          <Button type="button" onClick={() => void saveOrigin()} disabled={savingOrigin}>
+            {savingOrigin ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            保存并重新加载
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setOriginDraft(SITE_ORIGIN)}
+            disabled={savingOrigin}
+          >
+            <RotateCcw className="size-4" />
+            恢复默认
+          </Button>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          {siteProfileForOrigin(originDraft)?.description}
+        </p>
+        {originFeedback && (
+          <p
+            className={cn("mt-3 text-sm", originFeedback.error ? "text-clay" : "text-accent")}
+            role="status"
+          >
+            {originFeedback.message}
           </p>
         )}
       </section>
